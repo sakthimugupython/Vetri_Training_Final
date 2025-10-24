@@ -15,7 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
@@ -26,8 +25,8 @@ urlpatterns = [
     path('', include('myapp.urls')),
 ]
 
-# Serve media files in development
-if settings.DEBUG:
-    urlpatterns += [
-        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-    ]
+# Serve media files in development and production
+# In production, consider using a cloud storage service like AWS S3
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
