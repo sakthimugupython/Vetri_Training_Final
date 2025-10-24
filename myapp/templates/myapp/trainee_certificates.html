@@ -1,0 +1,624 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ trainee.user.get_full_name }} - Certificate Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/admin_dashboard.css' %}">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --card-shadow-hover: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        /* Base styles for all screen sizes */
+        body { background: #f5f7ff; }
+
+        /* Sidebar - Base styles */
+        .sidebar {
+            background: #222e3a;
+            color: #fff;
+            min-height: 100vh;
+            width: 230px;
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        /* Main content - Base styles */
+        .main-content {
+            margin-left: 230px;
+            padding: 0 24px 24px 24px;
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+
+        /* Hero header - Base styles */
+        .hero-header {
+            background: #3867ff;
+            color: white;
+            padding: 2rem 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(56, 103, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Content sections - Base styles */
+        .content-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Section titles - Base styles */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            position: relative;
+        }
+
+        /* Tables - Base styles */
+        .certificates-table-container {
+            overflow-x: auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        .certificates-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 1rem;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .certificates-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+
+        .certificates-table td {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        /* Enhanced Hamburger Button - Hidden by default */
+        .sidebar-toggle {
+            position: fixed !important;
+            top: 1rem !important;
+            left: 1rem !important;
+            z-index: 9999 !important;
+            background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%) !important;
+            color: white !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 12px !important;
+            padding: 0.75rem !important;
+            font-size: 1.25rem !important;
+            cursor: pointer !important;
+            width: 50px !important;
+            height: 50px !important;
+            display: none !important;
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4) !important;
+            transition: all 0.3s ease !important;
+            backdrop-filter: blur(10px) !important;
+        }
+
+        .sidebar-toggle:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #2980b9 100%) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.6) !important;
+        }
+
+        .sidebar-toggle:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* Sidebar Close Button */
+        .sidebar-close {
+            position: fixed !important;
+            top: 1rem !important;
+            right: 1rem !important;
+            z-index: 1001 !important;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+            color: white !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 50% !important;
+            padding: 0.5rem !important;
+            font-size: 1rem !important;
+            cursor: pointer !important;
+            width: 40px !important;
+            height: 40px !important;
+            display: none !important;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .sidebar-close:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6) !important;
+        }
+
+        .sidebar-close:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* ============================================
+           RESPONSIVE BREAKPOINTS - MOBILE FIRST
+           ============================================ */
+
+        /* Extra Small Devices (Portrait Phones, 320px - 575px) */
+        @media (max-width: 575px) {
+            .main-content {
+                margin-left: 0;
+                padding: 0.5rem;
+            }
+
+            .hero-header {
+                padding: 1.5rem 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .hero-title {
+                font-size: 1.5rem;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .content-section {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.2rem;
+            }
+
+            /* Show hamburger menu */
+            .sidebar-toggle {
+                display: block !important;
+            }
+
+            /* Hide sidebar by default */
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            /* Table responsive */
+            .certificates-table-container {
+                margin: 0 -0.5rem;
+                padding: 0 0.5rem;
+            }
+
+            .certificates-table {
+                font-size: 0.8rem;
+                min-width: 500px;
+            }
+
+            .certificates-table th,
+            .certificates-table td {
+                padding: 0.75rem 0.4rem;
+            }
+
+            .progress {
+                width: 80px;
+            }
+        }
+
+        /* Small Devices (Landscape Phones, 576px - 767px) */
+        @media (min-width: 576px) and (max-width: 767px) {
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .hero-title {
+                font-size: 1.8rem;
+            }
+
+            /* Show hamburger menu */
+            .sidebar-toggle {
+                display: block !important;
+            }
+
+            /* Hide sidebar by default */
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            /* Table responsive */
+            .certificates-table {
+                font-size: 0.85rem;
+                min-width: 550px;
+            }
+
+            .certificates-table th,
+            .certificates-table td {
+                padding: 0.875rem 0.5rem;
+            }
+
+            .progress {
+                width: 90px;
+            }
+        }
+
+        /* Medium Devices (Tablets, 768px - 991px) */
+        @media (min-width: 768px) and (max-width: 991px) {
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+
+            .hero-title {
+                font-size: 1.9rem;
+            }
+
+            /* Show hamburger menu */
+            .sidebar-toggle {
+                display: block !important;
+            }
+
+            /* Hide sidebar by default */
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            /* Table responsive */
+            .certificates-table {
+                font-size: 0.875rem;
+                min-width: 600px;
+            }
+
+            .certificates-table th,
+            .certificates-table td {
+                padding: 1rem 0.75rem;
+            }
+
+            .progress {
+                width: 100px;
+            }
+        }
+
+        /* Large Devices (Desktops, 992px - 1199px) */
+        @media (min-width: 992px) and (max-width: 1199px) {
+            .main-content {
+                margin-left: 230px;
+                padding: 1.5rem 2rem;
+            }
+
+            /* Hide hamburger menu */
+            .sidebar-toggle {
+                display: none !important;
+            }
+
+            /* Show sidebar */
+            .sidebar {
+                transform: translateX(0);
+            }
+
+            .certificates-table {
+                font-size: 0.9rem;
+            }
+
+            .progress {
+                width: 100px;
+            }
+        }
+
+        /* Extra Large Devices (Large Desktops, 1200px and up) */
+        @media (min-width: 1200px) {
+            .main-content {
+                margin-left: 230px;
+                padding: 2rem 3rem;
+            }
+
+            /* Hide hamburger menu */
+            .sidebar-toggle {
+                display: none !important;
+            }
+
+            /* Show sidebar */
+            .sidebar {
+                transform: translateX(0);
+            }
+
+            .certificates-table {
+                font-size: 0.95rem;
+            }
+
+            .progress {
+                width: 120px;
+            }
+        }
+
+        /* Show close button when sidebar is active on mobile/tablet */
+        @media (max-width: 991px) {
+            .sidebar.active ~ .sidebar-close {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Toggle Button (Mobile) -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Close Button (Mobile) -->
+    <button class="sidebar-close" onclick="toggleSidebar()">
+        <i class="fas fa-times"></i>
+    </button>
+
+    <!-- Sidebar -->
+    {% include 'myapp/_sidebar.html' %}
+
+    <div class="main-content">
+        <!-- Hero Header -->
+        <div class="hero-header">
+            <a href="{% url 'admin_certificates' %}" class="back-button">
+                <i class="fas fa-arrow-left"></i> Back to Trainees
+            </a>
+            <div class="hero-title">
+                <i class="fas fa-user-graduate"></i>
+                {{ trainee.user.get_full_name|default:trainee.user.username }}
+            </div>
+            <div class="hero-subtitle">
+                Certificate Management for {{ trainee.user.get_full_name|default:trainee.user.username }}
+            </div>
+        </div>
+
+        <!-- Trainee Details Section -->
+        <div class="content-section">
+            <div class="section-title">
+                <i class="fas fa-info-circle"></i>
+                Trainee Details
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Full Name:</strong></td>
+                            <td>{{ trainee.user.get_full_name|default:trainee.user.username }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>{{ trainee.user.email }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Phone:</strong></td>
+                            <td>{{ trainee.phone|default:'Not provided' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Course:</strong></td>
+                            <td>{{ trainee.course.name|default:'No course assigned' }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>Batch:</strong></td>
+                            <td>{{ trainee.batch|default:'No batch assigned' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status:</strong></td>
+                            <td>
+                                <span class="badge {% if trainee.status == 'Active' %}bg-success{% elif trainee.status == 'Completed' %}bg-primary{% else %}bg-warning{% endif %}">
+                                    {{ trainee.status|default:'Unknown' }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Progress:</strong></td>
+                            <td>
+                                <div class="progress" style="width: 100px; height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar"
+                                         style="width: {{ trainee.progress }}%">
+                                    </div>
+                                </div>
+                                <span class="ms-2">{{ trainee.progress }}%</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Certificates:</strong></td>
+                            <td><span class="badge bg-info">{{ certificate_count }}</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificate Upload Section -->
+        <div class="content-section">
+            <div class="section-title">
+                <i class="fas fa-upload"></i>
+                Upload New Certificate
+            </div>
+            <form method="post" enctype="multipart/form-data" class="row g-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="upload_certificate">
+
+                <div class="col-md-6">
+                    <label for="course_id" class="form-label">Select Course</label>
+                    <select class="form-select" id="course_id" name="course_id" required>
+                        <option value="">Choose a course...</option>
+                        {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name }} ({{ course.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="certificate_file" class="form-label">Certificate File</label>
+                    <input type="file" class="form-control" id="certificate_file" name="certificate_file"
+                           accept=".pdf,.jpg,.jpeg,.png" required>
+                    <div class="form-text">Supported formats: PDF, JPG, JPEG, PNG</div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-upload w-100">
+                        <i class="fas fa-upload"></i> Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Certificates List Section -->
+        <div class="content-section">
+            <div class="section-title">
+                <i class="fas fa-list"></i>
+                Certificates ({{ certificate_count }})
+            </div>
+
+            {% if certificates %}
+                <div class="certificates-table-container">
+                    <table class="certificates-table">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Course</th>
+                                <th>Certificate ID</th>
+                                <th>Issue Date</th>
+                                <th>Grade</th>
+                                <th>Completion</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for certificate in certificates %}
+                            <tr>
+                                <td><strong>{{ forloop.counter }}</strong></td>
+                                <td>
+                                    <span class="fw-semibold">{{ certificate.course.name }}</span>
+                                    <br>
+                                    <small class="text-muted">{{ certificate.course.code|default:'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <code class="certificate-number">{{ certificate.certificate_number }}</code>
+                                </td>
+                                <td>
+                                    <div>{{ certificate.issued_date|date:"M d, Y" }}</div>
+                                    <small class="text-muted">{{ certificate.issued_date|date:"M d, Y" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary fs-6">{{ certificate.grade }}</span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="width: 80px; height: 6px;">
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: {{ certificate.completion_percentage }}%">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted ms-2">{{ certificate.completion_percentage }}%</small>
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if certificate.is_verified %}status-verified{% else %}status-pending{% endif %}">
+                                        {{ certificate.is_verified|yesno:"Verified,Pending" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        {% if certificate.certificate_file %}
+                                        <a href="{{ certificate.certificate_file.url }}" class="btn btn-sm btn-success" download title="Download Certificate">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                        {% endif %}
+                                        <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this certificate?')">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="delete_certificate">
+                                            <input type="hidden" name="certificate_id" value="{{ certificate.id }}">
+                                            <button type="submit" class="btn btn-sm btn-delete" title="Delete Certificate">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <h3 class="empty-title">No Certificates Yet</h3>
+                    <p class="empty-text">{{ trainee.user.get_full_name|default:trainee.user.username }} doesn't have any certificates yet.</p>
+                    <p class="empty-text">Use the upload form above to add certificates.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Enhanced hamburger functionality for Certificate Details Page
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+            const closeBtn = document.querySelector('.sidebar-close');
+
+            if (window.innerWidth <= 768) {
+                const isActive = sidebar.classList.contains('active');
+
+                if (isActive) {
+                    // Close sidebar
+                    sidebar.classList.remove('active');
+                    sidebar.style.transform = 'translateX(-100%)';
+                    toggleBtn.style.display = 'block';
+                    if (closeBtn) closeBtn.style.display = 'none';
+                } else {
+                    // Open sidebar
+                    sidebar.classList.add('active');
+                    sidebar.style.transform = 'translateX(0)';
+                    toggleBtn.style.display = 'none';
+                    if (closeBtn) closeBtn.style.display = 'block';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

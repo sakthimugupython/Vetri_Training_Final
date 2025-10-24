@@ -1,0 +1,781 @@
+{% load static %}
+{% load attendance_extras %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Trainees Attendance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/trainer_dashboard.css' %}">
+    <style>
+        .attendance-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+
+        .attendance-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin: 0 auto;
+            max-width: 1200px;
+        }
+
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: fixed !important;
+            top: 1rem !important;
+            left: 1rem !important;
+            z-index: 9999 !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 12px !important;
+            padding: 0.75rem !important;
+            font-size: 1.25rem !important;
+            cursor: pointer !important;
+            width: 50px !important;
+            height: 50px !important;
+            display: none !important;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+            transition: all 0.3s ease !important;
+            backdrop-filter: blur(10px) !important;
+        }
+
+        .sidebar-toggle:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6c5ce7 100%) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6) !important;
+        }
+
+        .sidebar-toggle:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* Desktop: Hide hamburger */
+        @media (min-width: 769px) {
+            .sidebar-toggle {
+                display: none !important;
+            }
+        }
+
+        /* Mobile: Show hamburger prominently */
+        @media (max-width: 768px) {
+            .sidebar-toggle {
+                display: block !important;
+                position: fixed !important;
+                top: 1rem !important;
+                left: 1rem !important;
+                z-index: 9999 !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                border: 2px solid rgba(255, 255, 255, 0.3) !important;
+                width: 50px !important;
+                height: 50px !important;
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+            }
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: #23243a;
+            color: #fff;
+            min-width: 220px;
+            max-width: 240px;
+            height: 100vh;
+            transition: transform 0.3s ease;
+            box-shadow: 0 0 16px rgba(102, 126, 234, 0.2);
+            padding-top: 0.5rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transform: translateX(0); /* Show by default on desktop */
+        }
+
+        /* Hide sidebar on mobile by default */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%); /* Hide on mobile by default */
+            }
+
+            .sidebar.active {
+                transform: translateX(0); /* Show when active */
+            }
+        }
+
+        .sidebar .logo {
+            font-size: 2rem;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0 1.2rem;
+        }
+
+        .sidebar nav .nav-link {
+            color: #fff;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.6rem 1rem;
+            margin-bottom: 2px;
+            transition: background 0.2s, font-weight 0.2s;
+            text-decoration: none;
+        }
+
+        .sidebar nav .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .sidebar nav .nav-link i {
+            font-size: 1.2rem;
+        }
+
+        .sidebar nav .nav-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #fff;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 220px;
+            padding: 1.5rem;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .attendance-header {
+            background: linear-gradient(90deg, #934CD2 0%, #3B82F6 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .attendance-header h2 {
+            margin: 0;
+            font-size: 2.2em;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .attendance-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .table-responsive {
+            border-radius: 0 0 15px 15px;
+        }
+
+        .attendance-table {
+            margin-bottom: 0;
+        }
+
+        .attendance-table thead th {
+            background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
+            border: none;
+            font-weight: 600;
+            color: #495057;
+            padding: 20px 15px;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .attendance-table tbody tr {
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .attendance-table tbody tr:hover {
+            background-color: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .attendance-table tbody td {
+            padding: 20px 15px;
+            vertical-align: middle;
+            border: none;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .trainee-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .trainee-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #934CD2, #3B82F6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .trainee-details h5 {
+            margin: 0;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .trainee-details small {
+            color: #6c757d;
+        }
+
+        .attendance-status {
+            min-width: 300px;
+        }
+
+        .status-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .status-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+
+        .status-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #934CD2;
+        }
+
+        .status-option label {
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .absent-options {
+            margin-top: 15px;
+            margin-left: 28px;
+            padding: 15px;
+            background: linear-gradient(135deg, #fff7e6 0%, #ffeaa7 100%);
+            border-radius: 10px;
+            border-left: 4px solid #fdcb6e;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .absent-options .status-option {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .remarks-field {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px 15px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .remarks-field:focus {
+            outline: none;
+            border-color: #934CD2;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(147, 76, 210, 0.1);
+        }
+
+        .remarks-field:disabled {
+            background: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .submit-btn {
+            background: linear-gradient(90deg, #934CD2 0%, #3B82F6 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 15px rgba(147, 76, 210, 0.4);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(147, 76, 210, 0.6);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .form-check-input {
+            cursor: pointer;
+            transform: scale(1.1);
+        }
+
+        .form-check-label {
+            font-weight: 500;
+            margin-left: 5px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                width: 280px;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            /* Add backdrop overlay */
+            .sidebar.active::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: -1;
+            }
+
+            /* Prevent horizontal scrolling on mobile */
+            html, body {
+                overflow-x: hidden;
+                width: 100%;
+                max-width: 100vw;
+            }
+
+            /* Mobile responsive adjustments */
+            .attendance-header {
+                padding: 1.5rem;
+                text-align: center;
+                border-radius: 15px;
+            }
+
+            .attendance-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .attendance-header p {
+                font-size: 0.9rem;
+            }
+
+            .card {
+                margin-bottom: 1.5rem;
+                border-radius: 15px;
+            }
+
+            .card-header {
+                padding: 1rem;
+                font-size: 1.1rem;
+            }
+
+            .attendance-table {
+                font-size: 0.85rem;
+            }
+
+            .attendance-table thead th {
+                padding: 0.8rem 0.5rem;
+                font-size: 0.8rem;
+            }
+
+            .attendance-table tbody td {
+                padding: 0.8rem 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            .trainee-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .trainee-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .trainee-details h5 {
+                font-size: 1rem;
+            }
+
+            .attendance-status {
+                min-width: auto;
+            }
+
+            .status-options {
+                gap: 0.8rem;
+            }
+
+            .absent-options {
+                margin-left: 0;
+                margin-top: 1rem;
+                padding: 1rem;
+            }
+
+            .absent-options .status-option {
+                padding: 0.6rem 0.8rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .remarks-field {
+                padding: 0.8rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .submit-btn {
+                padding: 1rem 2rem;
+                font-size: 1rem;
+                width: 100%;
+            }
+
+            .form-check-input {
+                transform: scale(1.2);
+            }
+        }
+
+        /* Tablet responsive adjustments */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .main-content {
+                padding: 1.25rem;
+            }
+
+            .attendance-table {
+                font-size: 0.95rem;
+            }
+
+            .attendance-table thead th {
+                padding: 1rem 0.75rem;
+            }
+
+            .attendance-table tbody td {
+                padding: 1rem 0.75rem;
+            }
+
+            .trainee-avatar {
+                width: 45px;
+                height: 45px;
+            }
+        }
+
+        /* Custom scrollbar */
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, #934CD2, #3B82F6);
+            border-radius: 10px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(90deg, #764ba2, #2c5aa0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Toggle Button (Mobile) -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()" style="background: linear-gradient(135deg, #934CD2, #3B82F6) !important; color: white !important; font-size: 16px !important; padding: 12px !important; width: 45px !important; height: 45px !important;">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    {% include 'trainer/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content px-5">
+        <div class="attendance-header mb-4 p-4 rounded shadow-sm d-flex align-items-center justify-content-between" style="background: linear-gradient(90deg, #934CD2 0%, #3B82F6 100%); color: #fff;">
+            <div>
+                <h2 class="mb-1" style="font-weight:700;">My Trainees Attendance</h2>
+                <div style="font-size:1.1rem;">Track, update, and review attendance for your assigned trainees.</div>
+            </div>
+            <i class="fas fa-calendar-check fa-3x"></i>
+        </div>
+        <form method="post" id="attendanceForm">
+            {% csrf_token %}
+            {% for batch, trainees in batch_dict.items %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-gradient" style="background: linear-gradient(90deg, #934CD2 0%, #3B82F6 100%); color: black; font-weight:600;">
+                    Batch: {{ batch }}
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-user"></i> Trainee</th>
+                                    <th><i class="fas fa-book"></i> Course</th>
+                                    <th colspan="3">Attendance Status</th>
+                                    <th><i class="fas fa-sticky-note"></i> Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trainee in trainees %}
+                                <tr>
+                                    <td class="fw-bold">
+                                        <div class="trainee-info">
+                                            <div class="trainee-avatar">
+                                                {{ trainee.user.first_name|first|default:trainee.user.username|first|upper }}
+                                            </div>
+                                            <div class="trainee-details">
+                                                <h5><span class="trainee-name" data-trainee-id="{{ trainee.id }}">{{ trainee.user.get_full_name|default:trainee.user.username }}</span></h5>
+                                                <small class="text-muted">{{ trainee.user.email }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ trainee.course.name }}</strong><br>
+                                            <small class="text-muted" style="color: #000000 !important;">{{ trainee.batch|default:"Not Assigned" }}</small>
+                                        </div>
+                                    </td>
+                                    <td class="attendance-status">
+                                        <div class="status-options">
+                                            <div class="status-option" style="display: flex; align-items: center; gap: 10px;">
+{{ ... }}
+                                                <input class="form-check-input" type="radio" name="status_{{ trainee.id }}" id="status_{{ trainee.id }}_present" value="present" {% if trainee_status|get_item:trainee.id == 'present' %}checked{% endif %}>
+                                                <label class="form-check-label" for="status_{{ trainee.id }}_present">
+                                                    <i class="fas fa-check-circle text-success"></i> Present
+                                                </label>
+                                            </div>
+                                            <div class="status-option">
+                                                <input class="form-check-input absent-radio" type="radio" name="status_{{ trainee.id }}" id="status_{{ trainee.id }}_absent" value="absent" {% if trainee_status|get_item:trainee.id in 'absent,informed,not_informed' %}checked{% endif %}>
+                                                <label class="form-check-label" for="status_{{ trainee.id }}_absent">
+                                                    <i class="fas fa-times-circle text-danger"></i> Absent
+                                                </label>
+                                            </div>
+                                            <div class="absent-options" id="absent_options_{{ trainee.id }}" {% if trainee_status|get_item:trainee.id in 'absent,informed,not_informed' %}style="display: block;"{% else %}style="display: none;"{% endif %}>
+                                                <div class="status-option">
+                                                    <input class="form-check-input" type="radio" name="absent_type_{{ trainee.id }}" id="absent_informed_{{ trainee.id }}" value="informed" {% if trainee_status|get_item:trainee.id == 'informed' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="absent_informed_{{ trainee.id }}">
+                                                        <i class="fas fa-info-circle text-info"></i> Informed Absence
+                                                    </label>
+                                                </div>
+                                                <div class="status-option">
+                                                    <input class="form-check-input" type="radio" name="absent_type_{{ trainee.id }}" id="absent_not_informed_{{ trainee.id }}" value="not_informed" {% if trainee_status|get_item:trainee.id == 'not_informed' %}checked{% endif %}>
+                                                    <label class="form-check-label" for="absent_not_informed_{{ trainee.id }}">
+                                                        <i class="fas fa-exclamation-triangle text-warning"></i> Not Informed
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="remarks_{{ trainee.id }}" class="form-control form-control-sm remarks-field"
+                                               placeholder="Add remarks..." value="{% if trainee_status|get_item:trainee.id in 'informed,not_informed' %}{{ trainee_remarks|get_item:trainee.id }}{% endif %}"
+                                               {% if trainee_status|get_item:trainee.id not in 'informed,not_informed' %}disabled{% endif %}>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted" style="padding: 50px;">
+                                        <i class="fas fa-users fa-3x mb-3 text-muted"></i><br>
+                                        No trainees in this batch.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="d-grid gap-2 mt-3">
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-save"></i> Submit Attendance
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Hamburger functionality for Trainee Attendance page
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('active');
+
+                // Hide/show hamburger button based on sidebar state
+                if (sidebar.classList.contains('active')) {
+                    toggleBtn.style.display = 'none';
+                } else {
+                    toggleBtn.style.display = 'block';
+                }
+            }
+        }
+
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+
+            if (window.innerWidth <= 768 &&
+                sidebar.classList.contains('active') &&
+                !sidebar.contains(event.target) &&
+                !toggleBtn.contains(event.target)) {
+                sidebar.classList.remove('active');
+                toggleBtn.style.display = 'block';
+            }
+        });
+
+        // Handle window resize with proper mobile detection
+        window.addEventListener('resize', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+            const isMobile = window.innerWidth <= 768;
+
+            if (!isMobile) {
+                // Desktop: hide hamburger, show sidebar permanently
+                sidebar.classList.remove('active');
+                sidebar.style.transform = 'translateX(0)';
+                toggleBtn.style.display = 'none';
+            } else {
+                // Mobile: show hamburger, hide sidebar by default
+                sidebar.classList.remove('active');
+                sidebar.style.transform = 'translateX(-100%)';
+                toggleBtn.style.display = 'block';
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+
+            // Set initial state based on screen size
+            if (window.innerWidth <= 768) {
+                // MOBILE: Show hamburger, hide sidebar
+                sidebar.style.transform = 'translateX(-100%)';
+                sidebar.classList.remove('active');
+                toggleBtn.style.display = 'block';
+            } else {
+                // DESKTOP: Hide hamburger, show sidebar
+                sidebar.style.transform = 'translateX(0)';
+                sidebar.classList.remove('active');
+                toggleBtn.style.display = 'none';
+            }
+
+            // Force correct state after a short delay to ensure CSS is loaded
+            setTimeout(() => {
+                if (window.innerWidth <= 768) {
+                    toggleBtn.style.display = 'block';
+                    sidebar.style.transform = 'translateX(-100%)';
+                } else {
+                    toggleBtn.style.display = 'none';
+                    sidebar.style.transform = 'translateX(0)';
+                }
+            }, 100);
+        });
+
+        // Function to update absent options visibility
+        function updateAbsentOptions(traineeId, show) {
+            const absentOptions = document.getElementById(`absent_options_${traineeId}`);
+            const remarksField = document.querySelector(`input[name="remarks_${traineeId}"]`);
+
+            if (absentOptions) {
+                absentOptions.style.display = show ? 'block' : 'none';
+            }
+
+            if (remarksField) {
+                remarksField.disabled = !show;
+                if (!show) {
+                    remarksField.value = '';
+                }
+            }
+        }
+
+        // Handle absent radio button clicks
+        const absentRadios = document.querySelectorAll('.absent-radio');
+        absentRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    // Extract trainee ID from ID like "status_123_absent" or "status_123"
+                    const idParts = this.id.split('_');
+                    // Trainee ID is always in position 1 (middle) for status radio buttons
+                    const traineeId = idParts[1];
+                    updateAbsentOptions(traineeId, true);
+                }
+            });
+        });
+
+        // Handle present radio button clicks
+        const presentRadios = document.querySelectorAll('input[name^="status_"][value="present"]');
+        presentRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    // Extract trainee ID from radio button name like "status_123"
+                    const traineeId = this.name.split('_')[1];
+                    updateAbsentOptions(traineeId, false);
+                }
+            });
+        });
+
+        // Handle other radio buttons (informed/not_informed)
+        const otherRadios = document.querySelectorAll('input[name^="absent_type_"]');
+        otherRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    // Extract trainee ID from radio button name like "absent_type_123"
+                    const traineeId = this.name.split('_')[2];
+                    updateAbsentOptions(traineeId, true);
+                }
+            });
+        });
+    </script>

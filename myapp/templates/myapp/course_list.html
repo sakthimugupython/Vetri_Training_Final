@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'myapp/css/course_list.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        /* Enhanced Hamburger Button for Admin Courses Page */
+        .sidebar-toggle {
+            position: fixed !important;
+            top: 1rem !important; /* Back to original position */
+            left: 1rem !important;
+            z-index: 9999 !important;
+            background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%) !important; /* Purple to blue gradient */
+            color: white !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 12px !important;
+            padding: 0.75rem !important;
+            font-size: 1.25rem !important;
+            cursor: pointer !important;
+            width: 50px !important;
+            height: 50px !important;
+            display: none !important; /* Hidden by default - only show on mobile */
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4) !important;
+            transition: all 0.3s ease !important;
+            backdrop-filter: blur(10px) !important;
+        }
+
+        .sidebar-toggle:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #2980b9 100%) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.6) !important;
+        }
+
+        .sidebar-toggle:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* Sidebar Close Button */
+        .sidebar-close {
+            position: fixed !important;
+            top: 1rem !important;
+            right: 1rem !important;
+            z-index: 1001 !important;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important; /* Red gradient */
+            color: white !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 50% !important;
+            padding: 0.5rem !important;
+            font-size: 1rem !important;
+            cursor: pointer !important;
+            width: 40px !important;
+            height: 40px !important;
+            display: none !important;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4) !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .sidebar-close:hover {
+            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6) !important;
+        }
+
+        .sidebar-close:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* Desktop: Hide hamburger */
+        @media (min-width: 769px) {
+            .sidebar-toggle, .sidebar-close {
+                display: none !important;
+            }
+        }
+
+        /* Mobile: Show hamburger prominently */
+        @media (max-width: 768px) {
+            .sidebar-toggle {
+                display: block !important;
+                position: fixed !important;
+                top: 1rem !important; /* Back to original position */
+                left: 1rem !important;
+                z-index: 9999 !important;
+                background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%) !important;
+                border: 2px solid rgba(255, 255, 255, 0.3) !important;
+                width: 50px !important;
+                height: 50px !important;
+                box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4) !important;
+            }
+
+            .sidebar.active ~ .sidebar-close {
+                display: block !important;
+            }
+        }
+
+        /* Enhanced Sidebar styling for mobile slide-in effect */
+        .sidebar {
+            background: #222e3a;
+            color: #fff;
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            transform: translateX(0); /* Show by default on desktop */
+        }
+
+        /* Mobile sidebar behavior */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%); /* Hide by default on mobile */
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.active {
+                z-index: 1000 !important;
+            }
+        }
+
+        /* Main Content - Enhanced Responsive */
+        .main-content {
+            min-height: 100vh;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 2px #9747FF33;
+            border: none;
+        }
+
+        /* Search form styling */
+        .input-group .form-control {
+            background: #f4f6ff !important;
+            border: none !important;
+            font-size: 0.9rem;
+        }
+
+        .input-group .btn {
+            background: linear-gradient(90deg, #b27aff 0%, #7498fe 100%) !important;
+            border: none !important;
+            color: white !important;
+        }
+
+        .input-group .btn:hover {
+            background: linear-gradient(90deg, #a055ff 0%, #5c7cfa 100%) !important;
+        }
+
+        /* Search results info styling */
+        .search-results-info {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 1rem;
+        }
+
+        .search-results-info .btn-outline-secondary {
+            border-color: #6c757d;
+            color: #6c757d;
+        }
+
+        .search-results-info .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: white;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+                width: 100%;
+            }
+
+            .course-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                margin-top: 4rem; /* Push topbar below hamburger button */
+            }
+
+            .course-title {
+                font-size: 1.5rem;
+            }
+
+            .course-subtitle {
+                font-size: 0.9rem;
+            }
+
+            .user-info {
+                text-align: center;
+            }
+
+            /* Keep icons in single row on mobile */
+            .course-header .d-flex:last-child {
+                flex-direction: row !important;
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            .course-header .icon-btn {
+                padding: 0.5rem;
+                font-size: 0.9rem;
+            }
+
+            /* Responsive table */
+            .table-responsive {
+                font-size: 0.85rem;
+            }
+
+            .table th, .table td {
+                padding: 0.5rem 0.25rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .table th:nth-child(1), .table td:nth-child(1) {
+                width: 15%;
+            }
+
+            .table th:nth-child(2), .table td:nth-child(2) {
+                width: 25%;
+            }
+
+            .table th:nth-child(3), .table td:nth-child(3) {
+                width: 20%;
+            }
+
+            .table th:nth-child(4), .table td:nth-child(4),
+            .table th:nth-child(5), .table td:nth-child(5),
+            .table th:nth-child(6), .table td:nth-child(6) {
+                width: 10%;
+            }
+
+            .table th:nth-child(7), .table td:nth-child(7) {
+                width: 20%;
+            }
+
+            /* Card view responsive */
+            .course-card {
+                margin-bottom: 1.5rem;
+            }
+
+            .course-card-img-top {
+                height: 200px !important;
+            }
+
+            /* Action buttons stacking */
+            .d-flex.justify-content-end {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .btn-sm {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+
+            /* Improve action button spacing in table */
+            .table td .d-flex {
+                gap: 0.5rem !important;
+            }
+
+            .table td .btn-sm {
+                min-width: 60px;
+                padding: 0.375rem 0.75rem;
+            }
+        }
+
+        /* Desktop responsive adjustments */
+        @media (min-width: 769px) {
+            .main-content {
+                margin-left: 280px;
+                padding: 2rem;
+                width: calc(100% - 280px);
+            }
+        }
+
+        /* Specific responsive adjustments for 1024px and similar resolutions */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .table td .btn-sm {
+                min-width: 65px;
+                padding: 0.375rem 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .table td .d-flex {
+                gap: 0.25rem !important;
+            }
+        }
+
+        /* Improved card view button spacing for medium screens */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .course-card .d-flex.justify-content-end {
+                gap: 0.75rem;
+            }
+
+            .course-card .btn-sm {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        .course-icon {
+            flex-shrink: 0;
+        }
+
+        .course-card-id {
+            font-size: 0.75rem !important;
+            padding: 0.25rem 0.5rem !important;
+        }
+
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(178, 122, 255, 0.15) !important;
+        }
+
+        .course-card-img-top {
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .course-card .card-body {
+            display: flex;
+            flex-direction: column;
+            height: auto;
+        }
+
+        .course-card-title {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-clamp: 2;
+            box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+            max-height: 2.6em;
+        }
+
+        .course-card-info {
+            min-height: 100px;
+        }
+
+        .course-card-info .text-truncate {
+            max-width: calc(100% - 80px);
+        }
+
+        /* Responsive card layout fixes */
+        @media (max-width: 576px) {
+            .course-card {
+                margin-bottom: 1rem;
+            }
+
+            #course-card-view .row {
+                --bs-gutter-x: 1rem;
+            }
+
+            /* Single column on mobile */
+            #course-card-view .col-12 {
+                max-width: 100%;
+                flex: 0 0 100%;
+            }
+        }
+
+        @media (min-width: 577px) and (max-width: 767px) {
+            .course-card {
+                min-height: 380px;
+            }
+
+            /* Two columns on small tablets */
+            #course-card-view .col-sm-6 {
+                max-width: 50%;
+                flex: 0 0 50%;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 991px) {
+            .course-card {
+                min-height: 380px;
+            }
+
+            /* Two columns on tablets (768px-1024px) */
+            #course-card-view .col-md-6 {
+                max-width: 50%;
+                flex: 0 0 50%;
+            }
+        }
+
+        @media (min-width: 992px) and (max-width: 1199px) {
+            .course-card {
+                min-height: 360px;
+            }
+
+            /* Two columns from 992px to 1199px (includes 1024px) */
+            #course-card-view .col-lg-6 {
+                max-width: 50%;
+                flex: 0 0 50%;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .course-card {
+                min-height: 360px;
+            }
+
+            /* Four columns on extra large screens (1200px+) */
+            #course-card-view .col-xl-3 {
+                max-width: 25%;
+                flex: 0 0 25%;
+            }
+        }
+
+        /* Enhanced spacing for large screens (1440px+) */
+        @media (min-width: 1440px) {
+            #course-card-view .row {
+                max-width: 1400px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .course-card {
+                min-height: 380px;
+            }
+        }
+
+        /* Ensure cards don't overlap and have proper spacing */
+        #course-card-view .col-12,
+        #course-card-view .col-sm-6,
+        #course-card-view .col-md-6,
+        #course-card-view .col-lg-6,
+        #course-card-view .col-xl-3 {
+            padding-bottom: 1.5rem;
+        }
+
+        /* Enhanced card spacing */
+        #course-card-view .row {
+            margin-left: -0.75rem;
+            margin-right: -0.75rem;
+        }
+
+        #course-card-view .row > * {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+
+        /* Additional spacing for very large screens (1440px+) */
+        @media (min-width: 1440px) {
+            #course-card-view .row {
+                max-width: 1400px;
+                margin: 0 auto;
+                margin-left: -1rem;
+                margin-right: -1rem;
+            }
+
+            #course-card-view .row > * {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .course-card {
+                min-height: 380px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Toggle Button (Mobile) -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Close Button (Mobile) -->
+    <button class="sidebar-close" onclick="toggleSidebar()">
+        <i class="fas fa-times"></i>
+    </button>
+
+    <!-- Sidebar -->
+    {% include 'myapp/_sidebar.html' %}
+
+    <div class="main-content">
+        <div class="course-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h3 class="course-title">Courses</h3>
+                <div class="course-subtitle">Add, update, and manage all courses.</div>
+            </div>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <!-- Search Form in Topbar -->
+                <form method="GET" action="{% url 'course_list' %}" class="d-flex align-items-center" style="width: 280px;">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control form-control-sm"
+                               placeholder="Search courses..."
+                               value="{{ search_query|default:'' }}"
+                               style="background: #f4f6ff; border: 1px solid #e3e6f0; border-radius: 20px 0 0 20px; font-size: 0.85rem;">
+                        <button class="btn btn-sm" type="submit"
+                                style="background: linear-gradient(90deg, #b27aff 0%, #7498fe 100%); color: white; border: 1px solid #b27aff; border-radius: 0 20px 20px 0; padding: 0.375rem 0.75rem;">
+                            <i class="fas fa-search" style="font-size: 0.8rem;"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Add Course Button -->
+                <a href="{% url 'add_course' %}" class="btn btn-success btn-sm me-3" style="background: linear-gradient(90deg, #28a745 0%, #20c997 100%); border: none; padding: 0.5rem 1.5rem; border-radius: 25px; font-weight: 600; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                    <i class="fas fa-plus me-2"></i>Add Course
+                </a>
+
+                <div class="user-info ms-2">
+                    <div class="user-role">VTS Admin</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results Counter -->
+        {% if search_query %}
+        <div class="search-results-info mb-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted">
+                    {% if total_courses == 0 %}
+                        No courses found for "<strong>{{ search_query }}</strong>"
+                    {% elif total_courses == 1 %}
+                        Found <strong>1</strong> course for "<strong>{{ search_query }}</strong>"
+                    {% else %}
+                        Found <strong>{{ total_courses }}</strong> courses for "<strong>{{ search_query }}</strong>"
+                    {% endif %}
+                </span>
+                {% if total_courses > 0 %}
+                <a href="{% url 'course_list' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Clear Search
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        <div id="course-list-view">
+            <div class="course-table-wrapper table-responsive">
+                <table class="table course-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Course ID</th>
+                            <th>Course Name</th>
+                            <th>Trainer</th>
+                            <th>Status</th>
+                            <th>Enrolled</th>
+                            <th>Duration</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td>{{ course.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{% if course.cover_image %}{{ course.cover_image.url }}{% else %}{% static 'myapp/img/default-course.jpg' %}{% endif %}"
+                                         class="rounded me-3"
+                                         alt="{{ course.name }}"
+                                         style="width: 45px; height: 45px; object-fit: cover; flex-shrink: 0;">
+                                    <div class="course-info">
+                                        <div class="fw-bold course-name" style="font-size: 1rem; line-height: 1.2; margin-bottom: 2px;">{{ course.name }}</div>
+                                        <small class="text-muted course-category">{{ course.category|title }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if course.trainer %}
+                                    {{ course.trainer.user.get_full_name|default:course.trainer.user.username }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge {% if course.is_active %}bg-success{% else %}bg-secondary{% endif %}">{% if course.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+                            <td>{{ course.trainees.count }}</td>
+                            <td>{% if course.duration %}{{ course.duration }}{% else %}-{% endif %}</td>
+                            <td>
+                                <div class="d-flex gap-2 justify-content-start">
+                                    <a href="{% url 'edit_course' course.id %}" class="btn btn-primary btn-sm" style="min-width: 70px;">Edit</a>
+                                    <a href="{% url 'delete_course' course.id %}" class="btn btn-danger btn-sm" style="min-width: 70px;">Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">No courses found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="course-card-view" style="display:none;">
+            <div class="row g-3">
+                {% for course in courses %}
+                <div class="col-12 col-sm-6 col-md-6 col-lg-6 col-xl-3">
+                    <div class="course-card shadow-sm" style="height: auto; min-height: 350px;">
+                        <!-- Course Card Header/Cap -->
+                        <div class="course-card-header" style="background: linear-gradient(135deg, #b27aff 0%, #7498fe 100%); color: white; padding: 12px 16px; border-radius: 12px 12px 0 0;">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="course-icon me-2" style="width: 24px; height: 24px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                        <i class="fas fa-graduation-cap"></i>
+                                    </div>
+                                    <span class="fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">COURSE</span>
+                                </div>
+                                <span class="course-card-id fw-bold badge fs-6" style="background: rgba(255,255,255,0.2); color: white;">{{ course.id }}</span>
+                            </div>
+                        </div>
+
+                        <img src="{% if course.cover_image %}{{ course.cover_image.url }}{% else %}{% static 'myapp/img/default-course.jpg' %}{% endif %}"
+                             class="course-card-img-top img-fluid"
+                             alt="{{ course.name }}"
+                             style="width: 100%; height: 160px; object-fit: cover;">
+
+                        <div class="card-body p-3">
+                            <div class="mb-2">
+                                <h6 class="course-card-title fw-bold text-truncate" style="color: #b27aff; font-size: 0.95rem; line-height: 1.3;" title="{{ course.name }}">
+                                    {{ course.name }}
+                                </h6>
+                            </div>
+
+                            <div class="course-card-info p-2 mb-3" style="background: linear-gradient(90deg,#b27aff 0%,#7498fe 100%); border-radius: 8px; color: #fff; font-size: 0.8rem;">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold">Duration:</span>
+                                    <span>{% if course.duration %}{{ course.duration }}{% else %}-{% endif %}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold">Mode:</span>
+                                    <span>{% if course.mode %}{{ course.mode|title }}{% else %}-{% endif %}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold">Category:</span>
+                                    <span>{% if course.category %}{{ course.category|title }}{% else %}-{% endif %}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-semibold">Trainer:</span>
+                                    <span class="text-truncate" style="max-width: 120px;" title="{% if course.trainer %}{{ course.trainer.user.get_full_name|default:course.trainer.user.username }}{% else %}Not Assigned{% endif %}">
+                                        {% if course.trainer %}{{ course.trainer.user.get_full_name|default:course.trainer.user.username }}{% else %}Not Assigned{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="badge {% if course.is_active %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                                    {% if course.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                                <span class="text-muted small">{{ course.trainees.count }} enrolled</span>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{% url 'edit_course' course.id %}" class="btn btn-primary btn-sm flex-fill">Edit</a>
+                                <a href="{% url 'delete_course' course.id %}" class="btn btn-danger btn-sm flex-fill">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted mb-0">No courses found.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <script>
+        // Enhanced hamburger functionality for Admin Courses Page
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+            const closeBtn = document.querySelector('.sidebar-close');
+
+            console.log('🍔 ADMIN COURSES HAMBURGER CLICKED!');
+            console.log('Sidebar found:', !!sidebar);
+            console.log('Toggle button found:', !!toggleBtn);
+            console.log('Close button found:', !!closeBtn);
+            console.log('Window width:', window.innerWidth);
+
+            if (window.innerWidth <= 768) {
+                console.log('📱 Mobile mode detected');
+                console.log('Sidebar current transform:', sidebar.style.transform);
+                console.log('Sidebar current classList:', sidebar.classList.toString());
+
+                // Toggle the active class
+                const isActive = sidebar.classList.contains('active');
+                console.log('Currently active:', isActive);
+
+                if (isActive) {
+                    // Close sidebar
+                    sidebar.classList.remove('active');
+                    sidebar.style.transform = 'translateX(-100%)';
+                    toggleBtn.style.display = 'block';
+                    if (closeBtn) closeBtn.style.display = 'none';
+                    console.log('🔒 Admin Courses: Sidebar CLOSED');
+                } else {
+                    // Open sidebar
+                    sidebar.classList.add('active');
+                    sidebar.style.transform = 'translateX(0)';
+                    toggleBtn.style.display = 'none';
+                    if (closeBtn) closeBtn.style.display = 'block';
+                    console.log('🔓 Admin Courses: Sidebar OPENED');
+                }
+
+                console.log('Sidebar classList after toggle:', sidebar.classList.toString());
+                console.log('Sidebar transform after toggle:', sidebar.style.transform);
+            } else {
+                console.log('❌ Desktop mode - hamburger should be hidden');
+            }
+        }
+
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+            const closeBtn = document.querySelector('.sidebar-close');
+
+            if (window.innerWidth <= 768 &&
+                sidebar &&
+                toggleBtn &&
+                closeBtn &&
+                sidebar.classList.contains('active') &&
+                !sidebar.contains(event.target) &&
+                !toggleBtn.contains(event.target) &&
+                !closeBtn.contains(event.target)) {
+
+                sidebar.classList.remove('active');
+                sidebar.style.transform = 'translateX(-100%)';
+                toggleBtn.style.display = 'block';
+                closeBtn.style.display = 'none';
+                console.log('🚪 Admin Courses: Sidebar closed via outside click');
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+            const closeBtn = document.querySelector('.sidebar-close');
+
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('active');
+                sidebar.style.transform = 'translateX(0)';
+                toggleBtn.style.display = 'none';
+                if (closeBtn) closeBtn.style.display = 'none';
+                console.log('💻 Admin Courses: Desktop view - sidebar always visible');
+            } else {
+                // On mobile, ensure hamburger is visible and sidebar hidden (unless active)
+                if (!sidebar.classList.contains('active')) {
+                    sidebar.style.transform = 'translateX(-100%)';
+                    toggleBtn.style.display = 'block';
+                    if (closeBtn) closeBtn.style.display = 'none';
+                } else {
+                    toggleBtn.style.display = 'none';
+                    if (closeBtn) closeBtn.style.display = 'block';
+                }
+                console.log('📱 Admin Courses: Mobile view - hamburger/close button management');
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+            const closeBtn = document.querySelector('.sidebar-close');
+
+            console.log('🚀 ADMIN COURSES PAGE INITIALIZING...');
+            console.log('Screen width:', window.innerWidth);
+
+            // Set initial state based on screen size
+            if (window.innerWidth <= 768) {
+                // MOBILE: Show hamburger, hide sidebar and close button
+                sidebar.style.transform = 'translateX(-100%)';
+                sidebar.classList.remove('active');
+                toggleBtn.style.display = 'block';
+                if (closeBtn) closeBtn.style.display = 'none';
+                console.log('📱 Initial: Mobile mode - hamburger VISIBLE, sidebar HIDDEN');
+            } else {
+                // DESKTOP: Hide hamburger and close button, show sidebar
+                sidebar.style.transform = 'translateX(0)';
+                sidebar.classList.remove('active');
+                toggleBtn.style.display = 'none';
+                if (closeBtn) closeBtn.style.display = 'none';
+                console.log('💻 Initial: Desktop mode - hamburger HIDDEN, sidebar VISIBLE');
+            }
+
+            console.log('Toggle button found:', !!toggleBtn);
+            console.log('Close button found:', !!closeBtn);
+            console.log('Sidebar found:', !!sidebar);
+
+            // Force correct state after CSS loads
+            setTimeout(() => {
+                if (window.innerWidth <= 768) {
+                    toggleBtn.style.display = 'block';
+                    if (closeBtn) closeBtn.style.display = 'none';
+                    if (!sidebar.classList.contains('active')) {
+                        sidebar.style.transform = 'translateX(-100%)';
+                    }
+                    console.log('⏰ Force mobile state applied');
+                } else {
+                    toggleBtn.style.display = 'none';
+                    if (closeBtn) closeBtn.style.display = 'none';
+                    sidebar.style.transform = 'translateX(0)';
+                    console.log('⏰ Force desktop state applied');
+                }
+            }, 100);
+        });
+
+        // Toggle between list and card view
+        document.querySelector('.card-view-btn').onclick = function() {
+            document.getElementById('course-list-view').style.display = 'none';
+            document.getElementById('course-card-view').style.display = '';
+        };
+        document.querySelector('.list-view-btn').onclick = function() {
+            document.getElementById('course-list-view').style.display = '';
+            document.getElementById('course-card-view').style.display = 'none';
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

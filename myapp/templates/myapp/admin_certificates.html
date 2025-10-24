@@ -1,0 +1,1090 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Management - Admin Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/admin_dashboard.css' %}">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --card-shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Admin Dashboard Styles */
+        body {
+            background: #f5f7ff;
+        }
+
+        .sidebar {
+            background: #222e3a;
+            color: #fff;
+            min-height: 100vh;
+            width: 230px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 32px 0 24px 0;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .sidebar .logo span {
+            color: #52fe97;
+            font-style: italic;
+        }
+
+        .sidebar .nav-link {
+            color: #b6c6d6;
+            font-size: 1.08rem;
+            padding: 12px 32px;
+            border-radius: 8px 0 0 8px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .sidebar .nav-link.active,
+        .sidebar .nav-link:hover {
+            background: #3865ff;
+            color: #fff;
+        }
+
+        .sidebar .nav-link i {
+            margin-right: 12px;
+        }
+
+        .main-content {
+            margin-left: 230px;
+            padding: 0 24px 24px 24px;
+        }
+
+        /* Sidebar styling for mobile slide-in effect */
+        .sidebar {
+            background: #222e3a;
+            color: #fff;
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            transform: translateX(0);
+            /* Show by default on desktop */
+        }
+
+        /* Mobile sidebar behavior */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                /* Hide by default on mobile */
+                transition: transform 0.3s ease;
+                width: 280px;
+            }
+
+            .sidebar.active {
+                transform: translateX(0) !important;
+                /* Show when active */
+                z-index: 1000 !important;
+            }
+        }
+
+        /* Desktop main content */
+        @media (min-width: 992px) {
+            .main-content {
+                margin-left: 230px;
+                padding: 0 24px 24px 24px;
+                position: relative;
+                z-index: 10;
+                min-height: 100vh;
+            }
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 300px;
+                width: 100%;
+            }
+
+            .content-section {
+                padding: 1.5rem;
+            }
+
+            .certificates-table-container {
+                font-size: 0.9rem;
+            }
+
+            .certificates-table th,
+            .certificates-table td {
+                padding: 0.8rem 0.5rem;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .grade-distribution {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+
+            .course-stats {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            /* Enhanced responsive table */
+            .certificates-table-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -1rem;
+                padding: 0 1rem;
+            }
+
+            .certificates-table {
+                min-width: 600px;
+                /* Ensure minimum width for readability */
+                font-size: 0.875rem;
+                /* Slightly larger than before */
+            }
+
+            .certificates-table th,
+            .certificates-table td {
+                white-space: nowrap;
+                padding: 1rem 0.75rem;
+                /* Better touch targets */
+            }
+
+            /* Progress bar improvements for mobile */
+            .progress {
+                width: 100px;
+                /* Larger on mobile */
+                height: 8px;
+                /* Slightly thicker */
+            }
+
+            /* Make table headers more compact on mobile */
+            .certificates-table th {
+                font-size: 0.75rem;
+                padding: 0.75rem 0.5rem;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 576px) {
+            .certificates-table-container {
+                margin: 0 -0.5rem;
+                padding: 0 0.5rem;
+            }
+
+            .certificates-table {
+                font-size: 0.8rem;
+                min-width: 500px;
+            }
+
+            .certificates-table th,
+            .certificates-table td {
+                padding: 0.75rem 0.4rem;
+            }
+
+            /* Stack progress info vertically on very small screens */
+            .progress-container {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+                align-items: flex-start;
+            }
+
+            .progress {
+                width: 80px;
+            }
+
+            /* Make trainee name more prominent */
+            .student-name {
+                font-size: 0.9rem;
+                font-weight: 700;
+            }
+        }
+
+        /* Enhanced Hero Header */
+        .hero-header {
+            background: #3867ff;
+            color: white;
+            padding: 2rem 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(56, 103, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+
+            from {
+                text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            }
+
+            to {
+                text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+        /* Enhanced Form Container */
+        .content-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Enhanced Form Styling */
+        .form-label {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .form-select,
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-select:focus,
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .form-select:hover,
+        .form-control:hover {
+            border-color: #b794f6;
+        }
+
+        /* Enhanced Generate Button */
+        .btn-generate {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 2rem;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-generate::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-generate:hover::before {
+            left: 100%;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+        }
+
+        .btn-generate:active {
+            transform: translateY(0);
+        }
+
+        .btn-generate i {
+            margin-right: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Enhanced Section Titles */
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .section-title i {
+            color: #667eea;
+            font-size: 1.8rem;
+        }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        /* Enhanced Download Button */
+        .btn-download {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-download i {
+            font-size: 0.9rem;
+        }
+
+        .stat-icon {
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-gradient);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Grade Distribution */
+        .grade-distribution {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .grade-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .grade-letter {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary-gradient);
+            margin-bottom: 0.5rem;
+        }
+
+        .grade-count {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        /* Course Statistics */
+        .course-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .course-stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+        }
+
+        .course-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .course-code {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .course-cert-count {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--success-gradient);
+        }
+
+        /* Enhanced Certificate Table */
+        .certificates-table-container {
+            overflow-x: auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        .certificates-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 1rem;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .certificates-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .certificates-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+            position: relative;
+        }
+
+        .certificates-table th:first-child {
+            border-top-left-radius: 15px;
+        }
+
+        .certificates-table th:last-child {
+            border-top-right-radius: 15px;
+        }
+
+        .certificates-table td {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .certificates-table tbody tr {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .certificates-table tbody tr:hover {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            border-left-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .certificates-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .certificates-table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 15px;
+        }
+
+        .certificates-table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 15px;
+        }
+
+        /* Progress container responsive behavior */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Enhanced Table Elements */
+        .student-name {
+            font-weight: 700;
+            color: #2d3748;
+            font-size: 1rem;
+        }
+
+        .course-name {
+            color: #4a5568;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .certificate-number {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .grade-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .grade-A {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .grade-B {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+        }
+
+        .grade-C {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+        }
+
+        .grade-D {
+            background: linear-gradient(135deg, #9f7aea 0%, #805ad5 100%);
+            color: white;
+        }
+
+        .grade-F {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+            color: white;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-verified {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            color: white;
+        }
+
+        .btn-view {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .btn-view:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+
+        .main-content {
+            margin-left: 300px;
+            padding: 1rem;
+            min-height: 100vh;
+            background: #f8f9fa;
+            transition: var(--transition);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: #a0aec0;
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-title {
+            font-size: 1.8rem;
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .empty-text {
+            color: #718096;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Enhanced Hamburger Button for Admin Dashboard */
+        .sidebar-toggle {
+            position: fixed !important;
+            top: 1rem !important;
+            left: 1rem !important;
+            z-index: 9999 !important;
+            background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%) !important;
+            /* Purple to blue gradient */
+            color: white !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 12px !important;
+            padding: 0.75rem !important;
+            font-size: 1.25rem !important;
+            cursor: pointer !important;
+            width: 50px !important;
+            height: 50px !important;
+            display: none !important;
+            /* Hidden by default - only show on mobile */
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4) !important;
+            transition: all 0.3s ease !important;
+            backdrop-filter: blur(10px) !important;
+        }
+
+        .sidebar-toggle:hover {
+            background: linear-gradient(135deg, #8e44ad 0%, #2980b9 100%) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 8px 25px rgba(155, 89, 182, 0.6) !important;
+        }
+
+        .sidebar-toggle:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* Desktop: Hide hamburger */
+        @media (min-width: 769px) {
+            .sidebar-toggle {
+                display: none !important;
+            }
+        }
+
+        /* Mobile: Show hamburger prominently */
+        @media (max-width: 768px) {
+            .sidebar-toggle {
+                display: block !important;
+                position: fixed !important;
+                top: 1rem !important;
+                left: 1rem !important;
+                z-index: 9999 !important;
+                background: linear-gradient(135deg, #9b59b6 0%, #3498db 100%) !important;
+                border: 2px solid rgba(255, 255, 255, 0.3) !important;
+                width: 50px !important;
+                height: 50px !important;
+                box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4) !important;
+            }
+
+            /* Sidebar Close Button */
+            .sidebar-close {
+                position: fixed !important;
+                top: 1rem !important;
+                right: 1rem !important;
+                z-index: 1001 !important;
+                background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+                /* Red gradient */
+                color: white !important;
+                border: 2px solid rgba(255, 255, 255, 0.3) !important;
+                border-radius: 50% !important;
+                padding: 0.5rem !important;
+                font-size: 1rem !important;
+                cursor: pointer !important;
+                width: 40px !important;
+                height: 40px !important;
+                display: none !important;
+                box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4) !important;
+                transition: all 0.3s ease !important;
+            }
+
+            .sidebar-close:hover {
+                background: linear-gradient(135deg, #c0392b 0%, #a93226 100%) !important;
+                transform: scale(1.05) !important;
+                box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6) !important;
+            }
+
+            .sidebar-close:active {
+                transform: scale(0.95) !important;
+            }
+
+            .main-content {
+                margin-left: 0px;
+                padding: 1rem;
+                min-height: 100vh;
+                background: #f8f9fa;
+                transition: var(--transition);
+            }
+
+
+            /* Show close button when sidebar is active on mobile */
+            @media (max-width: 768px) {
+                .sidebar.active~.sidebar-close {
+                    display: block !important;
+                }
+            }
+        }
+
+        /* Certificate page filter section - Two Row, Two Column Layout */
+        .content-section form.row.g-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 1.5rem;
+            max-width: 100%;
+        }
+
+        /* First row - Search and Course filter */
+        .content-section form.row.g-3 > div:nth-child(1),
+        .content-section form.row.g-3 > div:nth-child(2) {
+            grid-column: span 1;
+            grid-row: 1;
+        }
+
+        /* Second row - Batch and Status filter */
+        .content-section form.row.g-3 > div:nth-child(3),
+        .content-section form.row.g-3 > div:nth-child(4) {
+            grid-column: span 1;
+            grid-row: 2;
+        }
+
+        /* Third row - Search button and filter info */
+        .content-section form.row.g-3 > div:nth-child(5) {
+            grid-column: 1 / -1;
+            grid-row: 3;
+        }
+
+        /* Mobile responsive - stack vertically */
+        @media (max-width: 768px) {
+            .content-section form.row.g-3 {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .content-section form.row.g-3 > div {
+                width: 100%;
+                max-width: none;
+            }
+        }
+
+        /* Certificate page filter section - Two Row, Two Column Layout */
+        .content-section form.row.g-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 1.5rem;
+            max-width: 100%;
+        }
+
+        /* First row - Search and Course filter */
+        .content-section form.row.g-3 > div:nth-child(1),
+        .content-section form.row.g-3 > div:nth-child(2) {
+            grid-column: span 1;
+            grid-row: 1;
+        }
+
+        /* Second row - Batch and Status filter */
+        .content-section form.row.g-3 > div:nth-child(3),
+        .content-section form.row.g-3 > div:nth-child(4) {
+            grid-column: span 1;
+            grid-row: 2;
+        }
+
+        /* Third row - Search button and filter info */
+        .content-section form.row.g-3 > div:nth-child(5) {
+            grid-column: 1 / -1;
+            grid-row: 3;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar Toggle Button (Mobile) -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Close Button (Mobile) -->
+    <button class="sidebar-close" onclick="toggleSidebar()">
+        <i class="fas fa-times"></i>
+    </button>
+
+    <!-- Sidebar -->
+    {% include 'myapp/_sidebar.html' %}
+
+    <div class="main-content">
+        <!-- Hero Header -->
+        <div class="hero-header">
+            <div class="hero-title">
+                <i class="fas fa-users"></i>
+                Trainees Management
+            </div>
+            <div class="hero-subtitle">
+                Monitor and manage all trainees across the platform
+            </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="content-section">
+            <div class="section-title">
+                <i class="fas fa-search"></i>
+                Search & Filter Trainees
+            </div>
+            <form method="get" class="row g-3">
+                <!-- First Row - Search and Course filter -->
+                <div class="col-md-6">
+                    <label for="search_query" class="form-label">Search by Name or Email</label>
+                    <input type="text" class="form-control" id="search_query" name="search" placeholder="Enter trainee name or email..." value="{{ request.GET.search|default:'' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="course_filter" class="form-label">Filter by Course</label>
+                    <select class="form-select" id="course_filter" name="course">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if request.GET.course == course.id|stringformat:'s' %}selected{% endif %}>
+                            {{ course.name }} ({{ course.code }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Second Row - Batch and Status filter -->
+                <div class="col-md-6">
+                    <label for="batch_filter" class="form-label">Filter by Batch</label>
+                    <input type="text" class="form-control" id="batch_filter" name="batch" placeholder="Enter batch..." value="{{ request.GET.batch|default:'' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="status_filter" class="form-label">Filter by Status</label>
+                    <select class="form-select" id="status_filter" name="status">
+                        <option value="">All Status</option>
+                        <option value="Active" {% if request.GET.status == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Completed" {% if request.GET.status == 'Completed' %}selected{% endif %}>Completed</option>
+                        <option value="On Hold" {% if request.GET.status == 'On Hold' %}selected{% endif %}>On Hold</option>
+                        <option value="Inactive" {% if request.GET.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+
+                <!-- Search button and filter info in full width row -->
+                <div class="col-md-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            {% if request.GET.search or request.GET.course or request.GET.batch or request.GET.status %}
+                            Showing filtered results
+                            <a href="{% url 'admin_certificates' %}" class="text-decoration-none">Clear filters</a>
+                            {% else %}
+                            Showing all trainees
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- All Trainees Management -->
+        <div class="content-section">
+            <div class="section-title">
+                <i class="fas fa-users"></i>
+                All Trainees Management
+            </div>
+
+            {% if trainees_with_certificates %}
+            <div class="trainees-table-container">
+                <div class="table-responsive">
+                    <table class="certificates-table">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Trainee Name</th>
+                                <th>Course</th>
+                                <th>Batch</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trainee_data in trainees_with_certificates %}
+                            <tr>
+                                <td><strong>{{ forloop.counter }}</strong></td>
+                                <td>
+                                    <div class="fw-bold">
+                                        <a href="{% url 'trainee_certificates' trainee_data.trainee.id %}" class="text-decoration-none">
+                                            {{ trainee_data.trainee.user.get_full_name|default:trainee_data.trainee.user.username }}
+                                        </a>
+                                    </div>
+                                    <small class="text-muted d-block d-md-inline">{{ trainee_data.trainee.user.email }}</small>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">{{ trainee_data.trainee.course.name|default:'No Course' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ trainee_data.trainee.batch|default:'No Batch' }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge {% if trainee_data.trainee.status == 'Active' %}bg-success{% elif trainee_data.trainee.status == 'Completed' %}bg-primary{% else %}bg-warning{% endif %}">
+                                        {{ trainee_data.trainee.status|default:'Unknown' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress-container d-flex align-items-center gap-2">
+                                        <div class="progress" style="width: 80px; height: 6px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ trainee_data.trainee.progress }}%">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ trainee_data.trainee.progress }}%</small>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="empty-title">No Trainees Found</h3>
+                <p class="empty-text">No trainees are currently enrolled in the system.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+
+    <script>
+        // Enhanced hamburger functionality for Admin Dashboard
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.sidebar-toggle');
+            const closeBtn = document.querySelector('.sidebar-close');
+
+            if (window.innerWidth <= 768) {
+                const isActive = sidebar.classList.contains('active');
+
+                if (isActive) {
+                    // Close sidebar
+                    sidebar.classList.remove('active');
+                    sidebar.style.transform = 'translateX(-100%)';
+                    toggleBtn.style.display = 'block';
+                    if (closeBtn) closeBtn.style.display = 'none';
+                } else {
+                    // Open sidebar
+                    sidebar.classList.add('active');
+                    sidebar.style.transform = 'translateX(0)';
+                    toggleBtn.style.display = 'none';
+                    if (closeBtn) closeBtn.style.display = 'block';
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
