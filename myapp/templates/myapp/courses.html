@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
     <title>{% block title %}My Courses - {{ trainee.user.get_full_name|default:trainee.user.username }}{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/trainee_header.css' %}">
     <style>
         :root {
             --primary-color: #667eea;
@@ -129,112 +131,75 @@
             transform: translateX(2px);
         }
 
-        /* Top Header Bar */
-        .top-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
-            color: white;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2rem;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .page-icon {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            display: flex;
+        .trainee-header__icon-circle {
+            width: 58px;
+            height: 58px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.18);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
+            color: var(--trainee-header-text);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.25);
+        }
+
+        .trainee-header__stats-card {
+            min-width: 180px;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 16px;
+            padding: 0.85rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             backdrop-filter: blur(10px);
+            color: var(--trainee-header-text);
         }
 
-        .page-info {
-            flex: 1;
+        .trainee-header__stats-card i {
+            font-size: 1.15rem;
         }
 
-        .page-title {
-            font-size: 2.2rem;
-            font-weight: 800;
-            margin: 0 0 0.5rem 0;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .page-subtitle {
-            font-size: 1.1rem;
-            margin: 0;
-            opacity: 0.9;
-            font-weight: 400;
-        }
-
-        .header-right {
+        .trainee-header__identity {
             display: flex;
             align-items: center;
-            gap: 2rem;
+            gap: 0.9rem;
         }
 
-        .stats-badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.8rem 1.5rem;
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            font-size: 0.95rem;
-            font-weight: 600;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-avatar {
-            width: 50px;
-            height: 50px;
+        .trainee-header__identity-avatar {
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            background: white;
-            display: flex;
+            background: rgba(255, 255, 255, 0.18);
+            border: 2px solid rgba(255, 255, 255, 0.32);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            color: var(--primary-color);
-            font-size: 1.2rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            font-size: 1.25rem;
+            color: var(--trainee-header-text);
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.25);
         }
 
-        .user-details {
+        .trainee-header__identity-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
             text-align: right;
         }
 
-        .user-name {
-            display: block;
-            font-weight: 700;
-            font-size: 1rem;
-            margin-bottom: 0.2rem;
+        .trainee-header__identity-name {
+            margin: 0;
+            font-weight: 600;
+            color: var(--trainee-header-text);
         }
 
-        .user-role {
-            display: block;
+        .trainee-header__identity-role {
+            margin: 0;
             font-size: 0.85rem;
-            opacity: 0.8;
+            color: var(--trainee-header-muted);
         }
 
         /* Breadcrumb Navigation */
@@ -505,32 +470,8 @@
                 width: 100%;
             }
 
-            .top-header {
-                padding: 1.5rem;
-                margin-bottom: 1.5rem;
-            }
-
-            .page-title {
-                font-size: 1.8rem;
-            }
-
-            .page-subtitle {
-                font-size: 1rem;
-            }
-
             .course-card {
                 margin-bottom: 1.5rem;
-            }
-
-            .stats-badge {
-                padding: 0.6rem 1rem;
-                font-size: 0.9rem;
-            }
-
-            .user-avatar {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
             }
 
             .action-buttons {
@@ -567,7 +508,7 @@
     </style>
 </head>
 
-<body>
+<body class="trainee-surface">
     <!-- Sidebar Toggle Button (Mobile) -->
     <button class="sidebar-toggle" onclick="toggleSidebar()">
         <i class="fas fa-bars"></i>
@@ -588,35 +529,41 @@
 
     <!-- Main Content -->
     <div class="main-content py-0">
-        <!-- Top Header Bar -->
-        <div class="top-header">
-            <div class="header-content">
-                <div class="header-left">
-                    <div class="page-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <div class="page-info">
-                        <h1 class="page-title">My Courses</h1>
-                        <p class="page-subtitle">Manage your enrolled courses and access session recordings</p>
+        <header class="trainee-header">
+            <div class="trainee-header__content">
+                <div class="trainee-header__titles">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="trainee-header__icon-circle">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <h1 class="trainee-header__title mb-0">My Courses</h1>
+                            <p class="trainee-header__subtitle mb-0">Manage your enrolled courses and access session recordings</p>
+                        </div>
                     </div>
                 </div>
-                <div class="header-right">
-                    <div class="stats-badge">
-                        <i class="fas fa-book-open"></i>
-                        <span>{{ total_enrolled_courses }} Course{{ total_enrolled_courses|pluralize }}</span>
+                <div class="trainee-header__actions">
+                    <div class="trainee-header__stats">
+                        <div class="trainee-header__stats-card">
+                            <i class="fas fa-book-open"></i>
+                            <div>
+                                <span class="trainee-header__stat-label">Enrolled Courses</span>
+                                <span class="trainee-header__stat-value">{{ total_enrolled_courses }}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="user-profile">
-                        <div class="user-avatar">
+                    <div class="trainee-header__identity">
+                        <div class="trainee-header__identity-avatar">
                             {{ trainee.user.first_name.0|default:"U" }}{{ trainee.user.last_name.0|default:"" }}
                         </div>
-                        <div class="user-details">
-                            <span class="user-name">{{ trainee.user.get_full_name|default:trainee.user.username }}</span>
-                            <span class="user-role">{{ trainee.course.name|default:"Student" }}</span>
+                        <div class="trainee-header__identity-info">
+                            <p class="trainee-header__identity-name">{{ trainee.user.get_full_name|default:trainee.user.username }}</p>
+                            <p class="trainee-header__identity-role">{{ trainee.course.name|default:"Student" }}</p>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
 
     <div class="row g-4">
         {% for course_data in courses_data %}

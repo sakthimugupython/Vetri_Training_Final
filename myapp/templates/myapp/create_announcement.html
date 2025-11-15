@@ -8,6 +8,7 @@
     <title>Create Announcement - Trainer Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/trainer_header.css' %}">
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -108,21 +109,6 @@
             padding: 1.5rem;
             min-height: 100vh;
             transition: margin-left 0.3s ease;
-        }
-
-        /* Top Header Enhancement */
-        .top-header {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 2rem;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .top-header .fw-bold {
-            font-size: 2rem;
-            font-weight: 800;
         }
 
         /* Enhanced Form Section */
@@ -331,10 +317,6 @@
                 padding: 1.25rem;
             }
 
-            .top-header {
-                padding: 1.75rem;
-            }
-
             .form-section {
                 padding: 1.75rem;
             }
@@ -364,13 +346,29 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Top Header -->
-        <div class="top-header d-flex justify-content-between align-items-center flex-column flex-sm-row gap-3 gap-sm-0">
-            <div class="fw-bold fs-4 text-light text-center text-sm-start">Create Announcement</div>
-            <div class="d-flex justify-content-center">
-                <a href="{% url 'trainer_announcements' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Announcements
-                </a>
+        <div class="trainer-header trainer-header--compact">
+            <div class="trainer-header__content w-100">
+                <div class="d-flex flex-column gap-2">
+                    <h1 class="trainer-header__title mb-0">
+                        <i class="fas fa-bullhorn me-2"></i>Create Announcement
+                    </h1>
+                    <p class="trainer-header__subtitle mb-0">
+                        Share timely updates with your trainees and fellow trainers.
+                    </p>
+                </div>
+                <div class="trainer-header__actions ms-auto">
+                    <div class="trainer-header__status">
+                        <span id="trainerStatusBadge" class="trainer-header__status-badge {% if request.user.trainer.admin_locked %}is-locked{% elif request.user.trainer.status == 'Active' %}is-active{% else %}is-offline{% endif %}" data-trainer-status-badge data-active-class="is-active" data-inactive-class="is-offline" data-locked-class="is-locked">
+                            <i id="trainerStatusIcon" class="fas {% if request.user.trainer.admin_locked %}fa-lock{% elif request.user.trainer.status == 'Active' %}fa-circle-check{% else %}fa-circle-minus{% endif %} trainer-header__status-icon"></i>
+                            <span id="statusLabelText" class="trainer-header__status-text" data-trainer-status-label>
+                                {% if request.user.trainer.admin_locked %}Offline (Admin){% elif request.user.trainer.status == 'Active' %}Online{% else %}Offline{% endif %}
+                            </span>
+                        </span>
+                    </div>
+                    <a href="{% url 'trainer_announcements' %}" class="btn btn-light text-primary fw-semibold">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Announcements
+                    </a>
+                </div>
             </div>
         </div>
 

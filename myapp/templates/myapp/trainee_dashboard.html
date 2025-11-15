@@ -7,6 +7,7 @@
     <title>Trainee Dashboard - Vetri Training</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/trainee_header.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -98,76 +99,64 @@
             transition: margin-left 0.3s ease;
         }
 
-        /* Header */
-        .page-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-left h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .header-left p {
-            margin: 0;
-            opacity: 0.9;
-        }
-
-        .header-right {
+        /* Trainee header overrides */
+        .trainee-header .header-right {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 1.1rem;
+            flex-wrap: wrap;
         }
 
-        .header-icon {
-            width: 45px;
-            height: 45px;
-            background: rgba(255, 255, 255, 0.2);
+        .trainee-header .header-icon {
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
-            display: flex;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .header-icon:hover {
-            background: rgba(255, 255, 255, 0.3);
+        .trainee-header .header-icon:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px rgba(15, 23, 42, 0.25);
         }
 
-        .user-avatar {
-            width: 50px;
-            height: 50px;
+        .trainee-header .user-avatar {
+            width: 54px;
+            height: 54px;
             border-radius: 50%;
-            background: white;
-            display: flex;
+            border: 2px solid rgba(255, 255, 255, 0.35);
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            color: var(--primary-color);
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.25);
         }
 
-        .user-info {
+        .trainee-header .user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
             text-align: right;
         }
 
-        .user-name {
-            font-weight: 700;
+        .trainee-header .user-name {
+            font-weight: 600;
             margin: 0;
+            color: var(--trainee-header-text);
         }
 
-        .user-role {
+        .trainee-header .user-role {
             font-size: 0.9rem;
-            opacity: 0.8;
             margin: 0;
+            color: var(--trainee-header-muted);
         }
 
         /* Dashboard Grid */
@@ -688,7 +677,7 @@
         }
     </style>
 </head>
-<body>
+<body class="trainee-surface">
     <!-- Sidebar Toggle Button -->
     <button class="sidebar-toggle" onclick="toggleSidebar()">
         <i class="fas fa-bars"></i>
@@ -709,31 +698,31 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Header -->
-        <div class="page-header">
-            <div class="header-left">
-                <h1>Welcome Back</h1>
-                <p>Let's Learn Something New Today</p>
+        <header class="trainee-header">
+            <div class="trainee-header__content">
+                <div class="trainee-header__titles">
+                    <h1 class="trainee-header__title">Welcome Back</h1>
+                    <p class="trainee-header__subtitle">Let's Learn Something New Today</p>
+                </div>
+                <div class="trainee-header__actions header-right">
+                    <div class="header-icon" style="position: relative;" onclick="markAllAnnouncementsAsRead()">
+                        <i class="fas fa-bell"></i>
+                        {% if unread_announcements_count > 0 %}
+                            <span style="position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600;">
+                                {{ unread_announcements_count }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="user-avatar">
+                        {{ trainee.user.first_name.0|default:"U" }}{{ trainee.user.last_name.0|default:"" }}
+                    </div>
+                    <div class="user-info">
+                        <p class="user-name">{{ trainee.user.get_full_name|default:trainee.user.username }}</p>
+                        <p class="user-role">{{ course.name|default:"UX Trainee" }}</p>
+                    </div>
+                </div>
             </div>
-            <div class="header-right">
-
-                <div class="header-icon" style="position: relative;" onclick="markAllAnnouncementsAsRead()">
-                    <i class="fas fa-bell"></i>
-                    {% if unread_announcements_count > 0 %}
-                        <span style="position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600;">
-                            {{ unread_announcements_count }}
-                        </span>
-                    {% endif %}
-                </div>
-                <div class="user-avatar">
-                    {{ trainee.user.first_name.0|default:"U" }}{{ trainee.user.last_name.0|default:"" }}
-                </div>
-                <div class="user-info">
-                    <p class="user-name">{{ trainee.user.get_full_name|default:trainee.user.username }}</p>
-                    <p class="user-role">{{ course.name|default:"UX Trainee" }}</p>
-                </div>
-            </div>
-        </div>
+        </header>
 
         <!-- Dashboard Grid -->
         <div class="dashboard-grid">

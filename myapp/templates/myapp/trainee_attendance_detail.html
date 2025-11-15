@@ -463,145 +463,216 @@
         /* Calendar View Styles */
         .calendar-container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            border: 1px solid var(--border-color);
+            border-radius: 22px;
+            box-shadow: 0 22px 60px rgba(79, 70, 229, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.15);
             overflow: hidden;
             display: none;
         }
 
         .calendar-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            padding: 1.5rem;
+            background: linear-gradient(120deg, rgba(99, 102, 241, 0.95), rgba(151, 71, 255, 0.95));
+            color: #fff;
+            padding: 1.75rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .calendar-nav-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.35);
             color: white;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
         }
 
         .calendar-nav-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.28);
+            transform: translateY(-2px);
         }
 
         .calendar-title {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             font-weight: 700;
             margin: 0;
+            letter-spacing: 0.04em;
         }
 
         .calendar-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 1px;
-            background: var(--border-color);
-            padding: 1rem;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.8rem;
+            padding: 1.75rem 2rem 2rem;
+            background: linear-gradient(180deg, rgba(248, 250, 255, 1) 0%, rgba(239, 246, 255, 0.75) 100%);
         }
 
         .calendar-day-header {
-            background: #f8f9fa;
-            padding: 1rem;
             text-align: center;
-            font-weight: 600;
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #4c51bf;
         }
 
         .calendar-day {
             min-height: 120px;
-            padding: 0.75rem;
-            border: 1px solid var(--border-color);
-            background: white;
+            padding: 0.85rem;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.9);
             position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            box-shadow: 0 12px 25px rgba(99, 102, 241, 0.12);
+            display: flex;
+            flex-direction: column;
         }
 
         .calendar-day:hover {
-            background: #f8f9ff;
-            transform: scale(1.02);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 18px 40px rgba(79, 70, 229, 0.2);
+        }
+
+        .calendar-day.muted {
+            background: rgba(237, 242, 255, 0.6);
+            color: #a0aec0;
+            box-shadow: none;
         }
 
         .calendar-day.today {
-            background: linear-gradient(135deg, #e8f4ff 0%, #d1e9ff 100%);
-            border: 2px solid var(--primary-color);
+            border: 2px solid rgba(99, 102, 241, 0.6);
         }
 
         .calendar-day-number {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-            display: block;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1a202c;
         }
 
         .calendar-day.today .calendar-day-number {
-            color: var(--primary-color);
-        }
-
-        .calendar-day-items {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
+            color: #4c51bf;
         }
 
         .calendar-attendance-item {
-            padding: 0.25rem 0.5rem;
-            border-radius: 8px;
+            margin-top: auto;
+            padding: 0.45rem 0.65rem;
+            border-radius: 999px;
             font-size: 0.75rem;
             font-weight: 600;
-            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
         }
 
-        .attendance-present {
-            background: linear-gradient(135deg, var(--success-color) 0%, #00C851 100%);
-            color: white;
+        .calendar-day .remarks-snippet {
+            margin-top: 0.45rem;
+            font-size: 0.7rem;
+            color: #4a5568;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
-        .attendance-absent {
-            background: linear-gradient(135deg, var(--danger-color) 0%, #E53935 100%);
-            color: white;
+        .calendar-day.status-present {
+            background: rgba(56, 161, 105, 0.12);
+            border: 1px solid rgba(72, 187, 120, 0.25);
         }
 
-        .attendance-informed {
-            background: linear-gradient(135deg, var(--warning-color) 0%, #F57C00 100%);
-            color: white;
+        .calendar-day.status-present .calendar-attendance-item {
+            background: rgba(72, 187, 120, 0.2);
+            color: #276749;
         }
 
-        .attendance-not-informed {
-            background: linear-gradient(135deg, #795548 0%, #5D4037 100%);
-            color: white;
+        .calendar-day.status-absent {
+            background: rgba(230, 60, 76, 0.12);
+            border: 1px solid rgba(229, 62, 62, 0.25);
+        }
+
+        .calendar-day.status-absent .calendar-attendance-item {
+            background: rgba(229, 62, 62, 0.2);
+            color: #9b2c2c;
+        }
+
+        .calendar-day.status-informed {
+            background: rgba(236, 201, 75, 0.14);
+            border: 1px solid rgba(214, 158, 46, 0.25);
+        }
+
+        .calendar-day.status-informed .calendar-attendance-item {
+            background: rgba(214, 158, 46, 0.24);
+            color: #975a16;
+        }
+
+        .calendar-day.status-not-informed {
+            background: rgba(160, 174, 192, 0.15);
+            border: 1px solid rgba(108, 122, 137, 0.25);
+        }
+
+        .calendar-day.status-not-informed .calendar-attendance-item {
+            background: rgba(108, 122, 137, 0.25);
+            color: #2d3748;
+        }
+
+        .calendar-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1.5rem;
+            padding: 1.25rem 2rem 2rem;
+            background: rgba(248, 250, 255, 0.85);
+            border-top: 1px solid rgba(99, 102, 241, 0.12);
+        }
+
+        .calendar-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
         }
 
         /* Responsive Calendar */
         @media (max-width: 768px) {
+            .calendar-grid {
+                padding: 1.25rem 1rem 1.5rem;
+                gap: 0.6rem;
+            }
+
             .calendar-day {
-                min-height: 80px;
-                padding: 0.5rem;
+                min-height: 95px;
+                padding: 0.75rem;
+                border-radius: 14px;
             }
 
             .calendar-day-number {
-                font-size: 0.9rem;
-                margin-bottom: 0.25rem;
+                font-size: 1rem;
             }
 
             .calendar-attendance-item {
-                font-size: 0.7rem;
-                padding: 0.2rem 0.4rem;
+                font-size: 0.68rem;
+            }
+
+            .calendar-legend {
+                padding: 1rem 1.25rem 1.5rem;
+                gap: 0.5rem 1rem;
             }
         }
     </style>
@@ -795,6 +866,13 @@
                 <div class="calendar-grid">
                     <!-- Calendar days will be populated by JavaScript -->
                 </div>
+                <div class="calendar-legend">
+                    <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(72, 187, 120, 0.8);"></span> Present</div>
+                    <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(229, 62, 62, 0.8);"></span> Absent</div>
+                    <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(214, 158, 46, 0.85);"></span> Informed</div>
+                    <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(108, 122, 137, 0.8);"></span> Not Informed</div>
+                    <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(237, 242, 255, 0.8);"></span> Not Marked</div>
+                </div>
             </div>
         </div>
     </div>
@@ -929,15 +1007,12 @@
             const daysInMonth = lastDay.getDate();
             const startingDayOfWeek = firstDay.getDay();
 
-            // Update month/year display
             const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                               'July', 'August', 'September', 'October', 'November', 'December'];
             monthYear.textContent = `${monthNames[month]} ${year}`;
 
-            // Clear previous calendar
             calendarGrid.innerHTML = '';
 
-            // Add day headers
             const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             dayNames.forEach(day => {
                 const dayHeader = document.createElement('div');
@@ -946,67 +1021,82 @@
                 calendarGrid.appendChild(dayHeader);
             });
 
-            // Add empty cells for days before month starts
+            const statusClassMap = {
+                'present': 'status-present',
+                'absent': 'status-absent',
+                'informed': 'status-informed',
+                'not_informed': 'status-not-informed'
+            };
+
             for (let i = 0; i < startingDayOfWeek; i++) {
                 const emptyDay = document.createElement('div');
-                emptyDay.className = 'calendar-day';
+                emptyDay.className = 'calendar-day muted';
                 calendarGrid.appendChild(emptyDay);
             }
 
-            // Add days of the month
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayElement = document.createElement('div');
                 dayElement.className = 'calendar-day';
 
-                // Check if this is today
                 const today = new Date();
                 if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
                     dayElement.classList.add('today');
                 }
 
-                // Create day number
                 const dayNumber = document.createElement('span');
                 dayNumber.className = 'calendar-day-number';
                 dayNumber.textContent = day;
 
-                // Check for attendance data
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const attendance = attendanceData[dateStr];
 
                 if (attendance) {
-                    const attendanceItem = document.createElement('div');
-                    attendanceItem.className = `calendar-attendance-item attendance-${attendance.status}`;
-
-                    let statusText = '';
-                    switch(attendance.status) {
-                        case 'present':
-                            statusText = 'Present';
-                            break;
-                        case 'absent':
-                            statusText = 'Absent';
-                            break;
-                        case 'informed':
-                            statusText = 'Informed';
-                            break;
-                        case 'not_informed':
-                            statusText = 'Not Informed';
-                            break;
+                    const statusClass = statusClassMap[attendance.status] || '';
+                    if (statusClass) {
+                        dayElement.classList.add(statusClass);
                     }
 
-                    attendanceItem.textContent = statusText;
+                    const attendanceItem = document.createElement('div');
+                    attendanceItem.className = `calendar-attendance-item ${statusClass.replace('status-', 'attendance-')}`;
+
+                    const iconMap = {
+                        'present': 'fa-check-circle',
+                        'absent': 'fa-times-circle',
+                        'informed': 'fa-info-circle',
+                        'not_informed': 'fa-exclamation-triangle'
+                    };
+
+                    const statusTextMap = {
+                        'present': 'Present',
+                        'absent': 'Absent',
+                        'informed': 'Informed',
+                        'not_informed': 'Not Informed'
+                    };
+
+                    const statusIcon = document.createElement('i');
+                    statusIcon.className = `fas ${iconMap[attendance.status] || 'fa-circle'}`;
+                    attendanceItem.appendChild(statusIcon);
+                    attendanceItem.appendChild(document.createTextNode(statusTextMap[attendance.status] || 'Marked'));
+
                     dayElement.appendChild(attendanceItem);
+
+                    if (attendance.remarks) {
+                        const remarks = document.createElement('div');
+                        remarks.className = 'remarks-snippet';
+                        remarks.innerHTML = `<i class="fas fa-sticky-note"></i> ${attendance.remarks}`;
+                        dayElement.appendChild(remarks);
+                    }
                 }
 
                 dayElement.insertBefore(dayNumber, dayElement.firstChild);
                 calendarGrid.appendChild(dayElement);
             }
 
-            // Fill remaining cells to complete the grid
             const totalCells = calendarGrid.children.length;
-            const remainingCells = 42 - totalCells; // 6 weeks * 7 days
-            for (let i = 0; i < remainingCells && totalCells < 42; i++) {
+            const remainingCells = 42 - totalCells;
+            for (let i = 0; i < remainingCells && calendarGrid.children.length < 42; i++) {
                 const emptyDay = document.createElement('div');
-                emptyDay.className = 'calendar-day';
+                emptyDay.className = 'calendar-day muted';
                 calendarGrid.appendChild(emptyDay);
             }
         }

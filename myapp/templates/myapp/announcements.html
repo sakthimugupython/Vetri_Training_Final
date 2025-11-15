@@ -10,6 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'myapp/css/trainer_list.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/admin_header.css' %}">
     <style>
         /* Enhanced Hamburger Button for Announcements Page */
         .sidebar-toggle {
@@ -452,7 +453,7 @@
     </style>
 </head>
 
-<body>
+<body class="admin-surface">
     <!-- Sidebar Toggle Button (Mobile) -->
     <button class="sidebar-toggle" onclick="toggleSidebar()">
         <i class="fas fa-bars"></i>
@@ -467,20 +468,22 @@
     {% include 'myapp/_sidebar.html' %}
 
     <div class="main-content">
-        <div class="trainer-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <div>
-                <h3 class="trainer-title">Manage Announcements</h3>
-                <div class="trainer-subtitle">Create, edit, and manage all announcements for trainees and trainers.</div>
-            </div>
-            <div class="d-flex align-items-center gap-3 flex-wrap">
-                <i class="fas fa-search"></i>
-                <i class="fas fa-envelope"></i>
-                <i class="fas fa-bell"></i>
-                <div class="user-info ms-2">
-                    <div class="user-role"><span style="font-size:0.95em;color:#8ec3ff;">VTS Admin</span></div>
+        <header class="admin-header">
+            <div class="admin-header__content">
+                <div class="admin-header__titles">
+                    <h1 class="admin-header__title">Manage Announcements</h1>
+                    <p class="admin-header__subtitle">Create, edit, and manage all announcements for trainees and trainers.</p>
+                </div>
+                <div class="admin-header__actions">
+                    <div class="admin-header__quick-actions">
+                        <button class="admin-header__icon-btn icon-btn" type="button"><i class="fas fa-search"></i></button>
+                        <button class="admin-header__icon-btn icon-btn" type="button"><i class="fas fa-envelope"></i></button>
+                        <button class="admin-header__icon-btn icon-btn" type="button"><i class="fas fa-bell"></i></button>
+                        <span class="admin-pill"><i class="fas fa-user-shield"></i> VTS Admin</span>
+                    </div>
                 </div>
             </div>
-        </div>
+        </header>
 
         <!-- Statistics Cards -->
         <div class="row g-3 mb-4">

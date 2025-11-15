@@ -472,8 +472,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="task-stat total">
-                                    <span class="task-value">{{ total_task }}</span>
-                                    <span class="task-label">Total Tasks</span>
+                                    <span class="task-value">{{ total_assigned }}</span>
+                                    <span class="task-label">Total Assigned</span>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -486,8 +486,8 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="task-stat pending">
-                                    <span class="task-value">{{ pending_completed }}</span>
-                                    <span class="task-label">Total Pending Done</span>
+                                    <span class="task-value">{{ today_assigned }}</span>
+                                    <span class="task-label">Assigned Today</span>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -512,23 +512,22 @@
                                 <div class="col-md-6">
                                     <div class="mb-4">
                                         <label for="daily_task" class="form-label">
-                                            <i class="fas fa-calendar-day"></i>Daily Tasks
+                                            <i class="fas fa-calendar-day"></i>Assign Tasks Today
                                         </label>
                                         <input type="number" class="form-control" id="daily_task" name="daily_task"
-                                               min="0" value="{{ daily_task }}" placeholder="Enter daily tasks" required>
-                                        <div class="form-text">Number of tasks assigned for today</div>
-                                        <div class="form-text"><strong>Workflow:</strong> Daily assignment → Next day completion → Track remaining tasks</div>
+                                               min="0" value="0" placeholder="Enter tasks to assign today">
+                                        <div class="form-text">Add the number of new tasks you are assigning today.</div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <div class="mb-4">
                                         <label for="completed_task" class="form-label">
-                                            <i class="fas fa-check-circle"></i>Today's Completed Tasks
+                                            <i class="fas fa-check-circle"></i>Tasks Completed Since Last Update
                                         </label>
                                         <input type="number" class="form-control" id="completed_task" name="completed_task"
-                                               min="0" value="0" placeholder="Tasks completed today" required>
-                                        <div class="form-text">Tasks finished today (will be added to total)</div>
+                                               min="0" value="0" placeholder="Enter completed tasks">
+                                        <div class="form-text">Record completions for previously assigned tasks.</div>
                                     </div>
                                 </div>
                             </div>
@@ -536,23 +535,23 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-4">
-                                        <label for="pending_completed" class="form-label">
-                                            <i class="fas fa-clock"></i>Today's Pending Tasks Completed
+                                        <label for="total_task" class="form-label">
+                                            <i class="fas fa-list-ol"></i>Total Assigned Tasks
                                         </label>
-                                        <input type="number" class="form-control" id="pending_completed" name="pending_completed"
-                                               min="0" value="0" placeholder="Previously pending tasks completed today">
-                                        <div class="form-text">Previously pending tasks completed today (will be added to total)</div>
+                                        <input type="number" class="form-control" id="total_task" value="{{ total_assigned }}"
+                                               readonly placeholder="Auto-calculated from daily assignments">
+                                        <div class="form-text">Cumulative total tasks assigned so far.</div>
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <div class="mb-4">
-                                        <label for="total_task" class="form-label">
-                                            <i class="fas fa-list-ol"></i>Total Tasks (All Time)
+                                        <label for="today_assigned" class="form-label">
+                                            <i class="fas fa-calendar-check"></i>Tasks Assigned Today
                                         </label>
-                                        <input type="number" class="form-control" id="total_task" value="{{ total_task }}"
-                                               readonly placeholder="Auto-calculated from assessments">
-                                        <div class="form-text">Total tasks from all daily assessments</div>
+                                        <input type="number" class="form-control" id="today_assigned" value="{{ today_assigned }}"
+                                               readonly placeholder="Today&#39;s assignments">
+                                        <div class="form-text">Total tasks already assigned today.</div>
                                     </div>
                                 </div>
                             </div>
@@ -563,7 +562,7 @@
                                 </label>
                                 <input type="number" class="form-control" id="remaining_task" value="{{ remaining_task }}"
                                        readonly placeholder="Auto-calculated">
-                                <div class="form-text">Automatically calculated: (Daily incomplete) + (Previous pending - Pending completed)</div>
+                                <div class="form-text">Calculated as Total Assigned minus Total Completed.</div>
                             </div>
 
                             <div class="mb-4">
@@ -627,7 +626,6 @@
             const form = document.getElementById('taskForm');
             const inputs = form.querySelectorAll('input[type="number"]');
 
-            // Add visual feedback for form inputs
             inputs.forEach(input => {
                 input.addEventListener('focus', function() {
                     this.parentElement.classList.add('focused');
@@ -637,27 +635,6 @@
                     this.parentElement.classList.remove('focused');
                 });
             });
-
-            // Real-time calculation display
-            function updateCalculations() {
-                const dailyTask = parseInt(document.getElementById('daily_task').value) || 0;
-                const completedTask = parseInt(document.getElementById('completed_task').value) || 0;
-                const pendingCompleted = parseInt(document.getElementById('pending_completed').value) || 0;
-
-                // Update visual indicators
-                const completedCard = document.querySelector('.task-stat.completed .task-value');
-                const pendingCard = document.querySelector('.task-stat.pending .task-value');
-
-                if (completedCard) completedCard.textContent = completedTask;
-                if (pendingCard) pendingCard.textContent = pendingCompleted;
-            }
-
-            // Add event listeners for real-time updates
-            document.getElementById('completed_task').addEventListener('input', updateCalculations);
-            document.getElementById('pending_completed').addEventListener('input', updateCalculations);
-
-            // Initialize calculations
-            updateCalculations();
         });
     </script>
 </body>

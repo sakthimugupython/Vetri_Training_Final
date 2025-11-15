@@ -1,18 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.auth import logout, login, authenticate
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from django.db import models
 from django.db.models import Q
-from django.http import JsonResponse, HttpResponse
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.conf import settings
 from datetime import timedelta
+from django.views.decorators.http import require_GET
 import os
 import re
 import json
@@ -58,6 +60,8 @@ def validate_password_strength(password):
         return False, "Password must contain at least one number"
 
     return True, "Password is strong"
+
+
 def generate_certificate_image(certificate_data):
     """
     Generate a certificate image with overlaid text data
@@ -185,6 +189,10 @@ def update_trainee_attendance(request, trainee_id):
 	today = timezone.now().date()
 	attendance, created = TraineeAttendance.objects.get_or_create(trainee=trainee, date=today)
 	if request.method == 'POST':
+		if trainer.status != 'Active':
+			messages.warning(request, 'You are currently offline. Switch online to update attendance.')
+			return redirect('trainer_trainee_attendance')
+
 		status = request.POST.get('status')
 		remarks = request.POST.get('remarks', '')
 		attendance.status = status
@@ -195,26 +203,43 @@ def update_trainee_attendance(request, trainee_id):
 	return render(request, 'myapp/update_trainee_attendance.html', {'trainee': trainee, 'attendance': attendance})
 
 @login_required(login_url='/trainer-login/')
-
 def trainee_attendance_trainer(request):
 	trainer = getattr(request.user, 'trainer', None)
 	if not trainer:
 		return redirect('trainer_login')
-	trainees = Trainee.objects.filter(trainer=trainer).select_related('user', 'course')
-	# Group trainees by batch
-	batch_numbers = [int(t.batch) for t in trainees if t.batch and t.batch.isdigit()]
-	if batch_numbers:
-		min_batch = min(batch_numbers)
-		max_batch = max(batch_numbers)
-		all_batches = [str(i) for i in range(min_batch, max_batch + 1)]
-	else:
-		all_batches = ['No Batch']
-	batch_dict = {batch: [] for batch in all_batches}
-	for trainee in trainees:
-		batch = trainee.batch or 'No Batch'
-		batch_dict.setdefault(batch, []).append(trainee)
+
+	trainees = list(
+		Trainee.objects.filter(trainer=trainer)
+		.select_related('user', 'course')
+		.order_by('batch', 'user__first_name', 'user__username')
+	)
+
+	unique_batches = sorted({t.batch for t in trainees if t.batch})
+	unique_courses = sorted({t.course.name for t in trainees if t.course})
+
+	if not trainees:
+		return render(request, 'myapp/trainee_attendance_trainer.html', {
+			'trainees': [],
+			'status_choices': [],
+			'calendar_weeks': [],
+			'trainer': trainer,
+		})
+
+	selected_trainee_id = request.GET.get('trainee_id') or request.POST.get('trainee_id')
+	selected_trainee = next((t for t in trainees if str(t.id) == str(selected_trainee_id)), trainees[0])
 
 	today = timezone.now().date()
+	current_date = today
+	month = int(request.GET.get('month') or request.POST.get('month') or current_date.month)
+	year = int(request.GET.get('year') or request.POST.get('year') or current_date.year)
+
+	if month > 12:
+		month = 1
+		year += 1
+	elif month < 1:
+		month = 12
+		year -= 1
+
 	status_choices = [
 		('present', 'Present'),
 		('absent', 'Absent'),
@@ -222,47 +247,100 @@ def trainee_attendance_trainer(request):
 		('not_informed', 'Not Informed'),
 	]
 
-	if request.method == 'POST':
-		for trainee in trainees:
-			status = request.POST.get(f'status_{trainee.id}')
-			if status:
-				attendance, _ = TraineeAttendance.objects.get_or_create(trainee=trainee, date=today)
+	if request.method == 'POST' and request.POST.get('selected_date'):
+		if trainer.status != 'Active':
+			messages.warning(request, 'You are currently offline. Switch online to update attendance.')
+			return redirect('trainer_trainee_attendance')
 
-				# Handle absent with sub-type (informed/not_informed)
-				if status == 'absent':
-					absent_type = request.POST.get(f'absent_type_{trainee.id}')
-					if absent_type in ['informed', 'not_informed']:
-						attendance.status = absent_type
-						remarks = request.POST.get(f'remarks_{trainee.id}', '')
-						attendance.remarks = remarks
-					else:
-						attendance.status = 'absent'
-				else:
-					attendance.status = status
+		from datetime import datetime
 
-				attendance.save()
-		messages.success(request, 'Attendance updated for all selected trainees!')
-		return redirect('trainer_trainee_attendance')
+		selected_date_str = request.POST['selected_date']
+		try:
+			selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+		except ValueError:
+			selected_date = today
 
-	# For each trainee, get today's status if exists
-	trainee_status = {}
-	trainee_remarks = {}
-	for trainee in trainees:
-		att = TraineeAttendance.objects.filter(trainee=trainee, date=today).first()
-		if att:
-			trainee_status[trainee.id] = att.status
-			trainee_remarks[trainee.id] = att.remarks
-		else:
-			trainee_status[trainee.id] = ''
-			trainee_remarks[trainee.id] = ''
+		status = request.POST.get('status')
+		remarks = request.POST.get('remarks', '').strip()
+
+		if status:
+			attendance, _ = TraineeAttendance.objects.get_or_create(
+				trainee=selected_trainee,
+				date=selected_date,
+			)
+			if status in {'informed', 'not_informed'}:
+				attendance.status = status
+				attendance.remarks = remarks
+			elif status == 'absent':
+				attendance.status = 'absent'
+				attendance.remarks = remarks
+			else:
+				attendance.status = status
+				attendance.remarks = ''
+			attendance.save()
+			messages.success(request, f"Attendance updated for {selected_trainee.user.get_full_name() or selected_trainee.user.username} on {selected_date.strftime('%d %b %Y')}")
+
+		redirect_url = reverse('trainer_trainee_attendance') + f'?trainee_id={selected_trainee.id}&month={month}&year={year}'
+		return redirect(redirect_url)
+
+	from calendar import Calendar, month_name
+
+	calendar_helper = Calendar(firstweekday=0)
+	month_weeks = calendar_helper.monthdatescalendar(year, month)
+	month_name_display = month_name[month]
+
+	month_start = month_weeks[0][0]
+	month_end = month_weeks[-1][-1]
+
+	attendance_records = TraineeAttendance.objects.filter(
+		trainee=selected_trainee,
+		date__range=[month_start, month_end]
+	).values('date', 'status', 'remarks')
+
+	attendance_map = {
+		record['date']: {
+			'status': record['status'],
+			'remarks': record['remarks'],
+		}
+		for record in attendance_records
+	}
+
+	calendar_weeks = []
+	for week in month_weeks:
+		week_days = []
+		for day in week:
+			att_data = attendance_map.get(day)
+			week_days.append({
+				'date': day,
+				'in_current_month': day.month == month,
+				'is_today': day == today,
+				'status': att_data['status'] if att_data else '',
+				'remarks': att_data['remarks'] if att_data else '',
+			})
+		calendar_weeks.append(week_days)
+
+	prev_month = month - 1 if month > 1 else 12
+	prev_year = year - 1 if month == 1 else year
+	next_month = month + 1 if month < 12 else 1
+	next_year = year + 1 if month == 12 else year
 
 	return render(request, 'myapp/trainee_attendance_trainer.html', {
-		'batch_dict': batch_dict,
+		'trainees': trainees,
+		'selected_trainee': selected_trainee,
 		'status_choices': status_choices,
-		'trainee_status': trainee_status,
-		'trainee_remarks': trainee_remarks,
-    })
-
+		'calendar_weeks': calendar_weeks,
+		'unique_batches': unique_batches,
+		'unique_courses': unique_courses,
+		'month': month,
+		'year': year,
+		'month_name': month_name_display,
+		'today': today,
+		'prev_month': prev_month,
+		'prev_year': prev_year,
+		'next_month': next_month,
+		'next_year': next_year,
+		'trainer': trainer,
+	})
 
 @login_required(login_url='/student-login/')
 def trainee_attendance_overview(request):
@@ -284,7 +362,7 @@ def trainee_attendance_overview(request):
         year -= 1
 
     # Get attendance data for the current trainee
-    from calendar import monthrange, month_name
+    from calendar import monthrange, month_name, Calendar
     _, last_day = monthrange(year, month)
     start_date = timezone.datetime(year, month, 1).date()
     end_date = timezone.datetime(year, month, last_day).date()
@@ -297,11 +375,16 @@ def trainee_attendance_overview(request):
 
     # Create attendance data structure for calendar
     attendance_dict = {}
+    attendance_map = {}
     for att in trainee_attendance:
         day_key = f"{att.date.year}-{att.date.month:02d}-{att.date.day:02d}"
         attendance_dict[day_key] = {
             'status': att.status,
             'remarks': att.remarks
+        }
+        attendance_map[att.date] = {
+            'status': att.status,
+            'remarks': att.remarks,
         }
 
     # Calculate attendance statistics
@@ -310,34 +393,69 @@ def trainee_attendance_overview(request):
 
     # Count different attendance statuses
     present_count = sum(1 for att in attendance_dict.values() if att['status'] == 'present')
-    absent_count = sum(1 for att in attendance_dict.values() if att['status'] == 'absent')
+    absent_only_count = sum(1 for att in attendance_dict.values() if att['status'] == 'absent')
     informed_count = sum(1 for att in attendance_dict.values() if att['status'] == 'informed')
     not_informed_count = sum(1 for att in attendance_dict.values() if att['status'] == 'not_informed')
 
-    # Calculate percentages
-    total_records = present_count + absent_count + informed_count + not_informed_count
+    total_absence_count = absent_only_count + informed_count + not_informed_count
+
+    # Calculate percentages (present vs overall absence)
+    total_records = present_count + total_absence_count
     present_percentage = (present_count / total_records * 100) if total_records > 0 else 0
-    absent_percentage = (absent_count / total_records * 100) if total_records > 0 else 0
-    informed_percentage = (informed_count / total_records * 100) if total_records > 0 else 0
-    not_informed_percentage = (not_informed_count / total_records * 100) if total_records > 0 else 0
+    absent_percentage = (total_absence_count / total_records * 100) if total_records > 0 else 0
+
+    # Breakdown of absence types as share of total absences
+    informed_percentage = (informed_count / total_absence_count * 100) if total_absence_count > 0 else 0
+    not_informed_percentage = (not_informed_count / total_absence_count * 100) if total_absence_count > 0 else 0
+    absent_only_percentage = (absent_only_count / total_absence_count * 100) if total_absence_count > 0 else 0
+
+    # Build calendar matrix for template rendering
+    calendar_helper = Calendar(firstweekday=6)  # Sunday start
+    month_weeks = calendar_helper.monthdatescalendar(year, month)
+    calendar_weeks = []
+    for week in month_weeks:
+        week_days = []
+        for day in week:
+            att_data = attendance_map.get(day)
+            week_days.append({
+                'date': day,
+                'in_current_month': day.month == month,
+                'is_today': day == current_date,
+                'status': att_data['status'] if att_data else '',
+                'remarks': att_data['remarks'] if att_data else '',
+            })
+        calendar_weeks.append(week_days)
+
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year - 1 if month == 1 else year
+    next_month = month + 1 if month < 12 else 1
+    next_year = year + 1 if month == 12 else year
 
     context = {
         'trainee': trainee,
         'attendance_dict': attendance_dict,
+        'calendar_weeks': calendar_weeks,
         'month_name': month_name[month],
         'year': year,
         'month': month,
         'current_date': current_date,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
         'statistics': {
             'total_days': total_days,
             'present_count': present_count,
-            'absent_count': absent_count,
+            'absent_count': total_absence_count,
+            'absent_only_count': absent_only_count,
             'informed_count': informed_count,
             'not_informed_count': not_informed_count,
             'present_percentage': round(present_percentage, 1),
             'absent_percentage': round(absent_percentage, 1),
+            'absent_only_percentage': round(absent_only_percentage, 1),
             'informed_percentage': round(informed_percentage, 1),
             'not_informed_percentage': round(not_informed_percentage, 1),
+            'total_absence_count': total_absence_count,
         }
     }
 
@@ -380,7 +498,7 @@ def add_announcement(request):
         target_audience = request.POST.get('target_audience')
         post_date = request.POST.get('post_date')
         
-        Announcement.objects.create(
+        announcement = Announcement.objects.create(
             title=title,
             content=content,
             short_description=description,
@@ -902,17 +1020,30 @@ def trainer_dashboard(request):
 
     # Allow trainer to toggle their own status unless admin_locked
     if request.method == 'POST':
-        print('POST data:', request.POST)
-        print('admin_locked:', trainer.admin_locked)
-        if request.POST.get('toggle_status') == 'toggle' and not trainer.admin_locked:
-            print('Toggling status. Current:', trainer.status)
-            if trainer.status == 'Active':
-                trainer.status = 'Inactive'
-            else:
-                trainer.status = 'Active'
-            trainer.save()
-            print('New status:', trainer.status)
-            messages.success(request, f"Your status has been set to {trainer.status}.")
+        if request.POST.get('toggle_status') == 'toggle':
+            if trainer.admin_locked:
+                error_msg = "Status changes are locked by an administrator."
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'message': error_msg,
+                        'admin_locked': True,
+                        'new_status': trainer.status,
+                    }, status=403)
+                messages.error(request, error_msg)
+                return redirect('trainer_dashboard')
+
+            trainer.status = 'Inactive' if trainer.status == 'Active' else 'Active'
+            trainer.save(update_fields=['status'])
+            message = f"Your status has been set to {trainer.status}."
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'new_status': trainer.status,
+                    'message': message,
+                    'admin_locked': trainer.admin_locked,
+                })
+            messages.success(request, message)
             return redirect('trainer_dashboard')
 
     # Get all courses assigned to trainer (courses where this trainer is assigned)
@@ -995,8 +1126,20 @@ def trainer_dashboard(request):
         'course_counts': course_counts_json,
         'recent_announcements': recent_announcements,
         'unread_announcements_count': unread_announcements_count,
-        'all_announcements': all_trainer_announcements,  # Add this for template access
+        'all_announcements': list(all_trainer_announcements[:10]),
     })
+
+@login_required(login_url='/trainer-login/')
+@require_GET
+def trainer_status_api(request):
+	trainer = getattr(request.user, 'trainer', None)
+	if not trainer:
+		return JsonResponse({'detail': 'Trainer profile not found.'}, status=404)
+
+	return JsonResponse({
+		'status': trainer.status,
+		'admin_locked': trainer.admin_locked,
+	})
 
 @login_required(login_url='/admin-login/')
 @user_passes_test(is_admin, login_url='/admin-login/')
@@ -1639,6 +1782,9 @@ def trainee_list_trainer(request):
             models.Q(batch__icontains=search_query)
         )
 
+    trainees = list(trainees.order_by('batch', 'user__first_name', 'user__username'))
+    current_date = timezone.localdate()
+
     # Find all batch numbers (as integers) for this trainer
     batch_numbers = [int(t.batch) for t in trainees if t.batch and t.batch.isdigit()]
     if batch_numbers:
@@ -1649,45 +1795,62 @@ def trainee_list_trainer(request):
         all_batches = ['No Batch']
 
     batch_dict = {batch: [] for batch in all_batches}
+    summary = {
+        'total_trainees': len(trainees),
+        'active_trainees': 0,
+        'inactive_trainees': 0,
+        'total_assigned': 0,
+        'total_completed': 0,
+        'total_remaining': 0,
+    }
+    course_set = set()
 
     for trainee in trainees:
         batch = trainee.batch or 'No Batch'
 
-        # Calculate total tasks from all DailyAssessment records (same as update_assessment)
         from .models import DailyAssessment
-        total_task = DailyAssessment.objects.filter(trainee=trainee).aggregate(total=models.Sum('score'))['total'] or 0
+        assignments = DailyAssessment.objects.filter(trainee=trainee).order_by('date')
+        total_task = assignments.aggregate(total=models.Sum('score'))['total'] or 0
 
         completed_task = getattr(trainee, 'completed_task', 0)
-        pending_completed = getattr(trainee, 'pending_completed', 0)
-        daily_task = trainee.daily_task
+        # Remaining backlog counts all assigned tasks against completions
+        remaining_task = max(total_task - completed_task, 0)
 
-        # Use the same remaining task calculation as update_assessment
-        # The correct logic is: Remaining = (Daily incomplete) + (Previous pending)
-        # Where Previous pending = Total tasks that were ever assigned minus tasks completed from pending
-        daily_incomplete = max(daily_task - completed_task, 0)
-        # For previous pending, we need to track what was previously pending
-        # Since we don't have a "pending_assigned" field, we calculate it as:
-        # Previous pending = Total assigned - Current daily tasks (since daily tasks are today's assignments)
-        previous_pending = max(total_task - daily_task, 0) if total_task > daily_task else 0
-        remaining_task = daily_incomplete + max(previous_pending - pending_completed, 0)
+        course_name = trainee.course.name if trainee.course else ''
+        if course_name:
+            course_set.add(course_name)
+
+        completion_percent = 0
+        if total_task > 0:
+            completion_percent = min(100, max(0, round((completed_task / total_task) * 100)))
+
+        if trainee.status == 'Active':
+            summary['active_trainees'] += 1
+        else:
+            summary['inactive_trainees'] += 1
+
+        summary['total_assigned'] += total_task
+        summary['total_completed'] += completed_task
+        summary['total_remaining'] += remaining_task
 
         # Get today's attendance
-        today = timezone.now().date()
-        today_attendance = TraineeAttendance.objects.filter(trainee=trainee, date=today).first()
+        today_attendance = TraineeAttendance.objects.filter(trainee=trainee, date=current_date).first()
         attendance_today = today_attendance.status if today_attendance else 'not_marked'
+        attendance_display = attendance_today.replace('_', ' ').title() if attendance_today else 'Not Marked'
 
         trainee_info = {
             'id': trainee.id,
             'name': trainee.user.get_full_name() or trainee.user.username,
             'email': trainee.user.email,
-            'course': trainee.course.name if trainee.course else '',
+            'course': course_name,
             'batch': batch,
             'total_task': total_task,
-            'completed_task': trainee.completed_task,  # Show accumulated completed tasks
-            'pending_completed': trainee.pending_completed,  # Show accumulated pending completed
+            'completed_task': trainee.completed_task,
             'remaining_task': remaining_task,
+            'completion_percent': completion_percent,
             'status': trainee.status,
             'attendance_today': attendance_today,
+            'attendance_display': attendance_display,
             'remarks': trainee.remarks or '',
         }
         batch_dict.setdefault(batch, []).append(trainee_info)
@@ -1696,7 +1859,10 @@ def trainee_list_trainer(request):
     context = {
         'batch_dict': batch_dict,
         'search_query': search_query,
-        'total_trainees': trainees.count()
+        'total_trainees': summary['total_trainees'],
+        'summary': summary,
+        'batches': all_batches,
+        'courses': sorted(course_set),
     }
 
     return render(request, 'myapp/trainee_list_trainer.html', context)
@@ -1709,130 +1875,63 @@ def update_assessment(request, trainee_id):
         return redirect('trainer_login')
 
     # Get current values
-    current_completed = getattr(trainee, 'completed_task', 0)
-    current_pending_completed = getattr(trainee, 'pending_completed', 0)
-    daily_task = trainee.daily_task
-
-    # Calculate total tasks from all DailyAssessment records
     from .models import DailyAssessment
-    total_task = DailyAssessment.objects.filter(trainee=trainee).aggregate(total=models.Sum('score'))['total'] or 0
+    current_completed = getattr(trainee, 'completed_task', 0)
 
-    # Calculate remaining tasks using the corrected logic:
-    daily_incomplete = max(daily_task - current_completed, 0)
-    previous_pending = max(total_task - daily_task, 0) if total_task > daily_task else 0
-    remaining_task = daily_incomplete + max(previous_pending - current_pending_completed, 0)
+    assignments = DailyAssessment.objects.filter(trainee=trainee).order_by('date')
+    total_assigned = assignments.aggregate(total=models.Sum('score'))['total'] or 0
+    today = timezone.now().date()
+    today_assigned = assignments.filter(date=today).aggregate(total=models.Sum('score'))['total'] or 0
+
+    remaining_task = max(total_assigned - current_completed, 0)
 
     if request.method == 'POST':
-        daily_task = int(request.POST.get('daily_task', trainee.daily_task))
-        new_daily_completed = int(request.POST.get('completed_task', current_completed))
-        new_pending_completed = int(request.POST.get('pending_completed', current_pending_completed))
-        remarks = request.POST.get('remarks', '')
+        if trainer.status != 'Active':
+            messages.warning(request, 'You are currently offline. Switch online to update trainee stats.')
+            return redirect('trainer_trainee_list')
 
-        # Calculate new total BEFORE creating the DailyAssessment record
-        new_total_task = total_task + daily_task
+        assigned_today = max(int(request.POST.get('daily_task', 0)), 0)
+        completed_since_last = max(int(request.POST.get('completed_task', 0)), 0)
+        remarks = request.POST.get('remarks', '').strip()
 
-        # Create a new DailyAssessment record for today's tasks
-        DailyAssessment.objects.create(
-            trainee=trainee,
-            trainer=trainer,
-            date=timezone.now().date(),
-            score=daily_task,
-            max_score=0,
-            remarks='',
-            is_completed=True
-        )
+        if assigned_today > 0:
+            DailyAssessment.objects.create(
+                trainee=trainee,
+                trainer=trainer,
+                date=today,
+                score=assigned_today,
+                max_score=0,
+                remarks='',
+                is_completed=True
+            )
 
-        # Update trainee fields - ADD to existing values instead of replacing
-        trainee.daily_task = daily_task
-        trainee.completed_task = current_completed + new_daily_completed  # ADD to existing
-        trainee.pending_completed = current_pending_completed + new_pending_completed  # ADD to existing
+            total_assigned += assigned_today
+            today_assigned += assigned_today
+
+        updated_completed = current_completed + completed_since_last
+        if updated_completed > total_assigned:
+            updated_completed = total_assigned
+
+        remaining_task = max(total_assigned - updated_completed, 0)
+
+        trainee.completed_task = updated_completed
+        trainee.pending_completed = 0
+        trainee.total_task = total_assigned
+        trainee.daily_task = today_assigned
         trainee.remarks = remarks
-
-        # Recalculate remaining tasks with corrected logic
-        daily_incomplete = max(daily_task - new_daily_completed, 0)
-        previous_pending = max(new_total_task - daily_task, 0) if new_total_task > daily_task else 0
-        new_remaining_task = daily_incomplete + max(previous_pending - new_pending_completed, 0)
-
         trainee.save()
+
         messages.success(request, 'Task info updated!')
         return redirect('trainer_trainee_list')
 
     return render(request, 'myapp/update_assessment.html', {
         'trainee': trainee,
         'completed_task': current_completed,
-        'pending_completed': current_pending_completed,
-        'daily_task': daily_task,
-        'total_task': total_task,
+        'total_assigned': total_assigned,
+        'today_assigned': today_assigned,
         'remaining_task': remaining_task,
-    })
-
-@login_required(login_url='/trainer-login/')
-def trainee_attendance_trainer(request):
-    trainer = getattr(request.user, 'trainer', None)
-    if not trainer:
-        return redirect('trainer_login')
-
-    trainees = Trainee.objects.filter(trainer=trainer).select_related('user', 'course')
-    # Group trainees by batch
-    batch_numbers = [int(t.batch) for t in trainees if t.batch and t.batch.isdigit()]
-    if batch_numbers:
-        min_batch = min(batch_numbers)
-        max_batch = max(batch_numbers)
-        all_batches = [str(i) for i in range(min_batch, max_batch + 1)]
-    else:
-        all_batches = ['No Batch']
-    batch_dict = {batch: [] for batch in all_batches}
-    for trainee in trainees:
-        batch = trainee.batch or 'No Batch'
-        batch_dict.setdefault(batch, []).append(trainee)
-
-    today = timezone.now().date()
-    status_choices = [
-        ('present', 'Present'),
-        ('absent', 'Absent'),
-        ('informed', 'Informed'),
-        ('not_informed', 'Not Informed'),
-    ]
-
-    if request.method == 'POST':
-        for trainee in trainees:
-            status = request.POST.get(f'status_{trainee.id}')
-            if status:
-                attendance, _ = TraineeAttendance.objects.get_or_create(trainee=trainee, date=today)
-
-                # Handle absent with sub-type (informed/not_informed)
-                if status == 'absent':
-                    absent_type = request.POST.get(f'absent_type_{trainee.id}')
-                    if absent_type in ['informed', 'not_informed']:
-                        attendance.status = absent_type
-                        remarks = request.POST.get(f'remarks_{trainee.id}', '')
-                        attendance.remarks = remarks
-                    else:
-                        attendance.status = 'absent'
-                else:
-                    attendance.status = status
-
-                attendance.save()
-        messages.success(request, 'Attendance updated for all selected trainees!')
-        return redirect('trainer_trainee_attendance')
-
-    # For each trainee, get today's status if exists
-    trainee_status = {}
-    trainee_remarks = {}
-    for trainee in trainees:
-        att = TraineeAttendance.objects.filter(trainee=trainee, date=today).first()
-        if att:
-            trainee_status[trainee.id] = att.status
-            trainee_remarks[trainee.id] = att.remarks
-        else:
-            trainee_status[trainee.id] = ''
-            trainee_remarks[trainee.id] = ''
-
-    return render(request, 'myapp/trainee_attendance_trainer.html', {
-        'batch_dict': batch_dict,
-        'status_choices': status_choices,
-        'trainee_status': trainee_status,
-        'trainee_remarks': trainee_remarks,
+        'trainer': trainer,
+        'offline_info_banner': 'You are currently offline. Some features may be restricted.' if trainer.status != 'Active' else '',
     })
 
 @login_required(login_url='/trainer-login/')

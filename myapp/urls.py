@@ -32,6 +32,7 @@ urlpatterns = [
     path('trainer-logout/', views.trainer_logout, name='trainer_logout'),
     path('update-assessment/<int:trainee_id>/', views.update_assessment, name='update_assessment'),
     path('trainer-trainee-list/', views.trainee_list_trainer, name='trainer_trainee_list'),
+    path('trainer-status/', views.trainer_status_api, name='trainer_status_api'),
 
     # Attendance URLs
     path('trainee-attendance/', views.trainee_attendance_list, name='trainee_attendance_list'),

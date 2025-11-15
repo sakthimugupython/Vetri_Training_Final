@@ -17,6 +17,11 @@
     overflow-y: auto;
     transform: translateX(0); /* Show by default on desktop */
     width: 240px; /* Ensure consistent width */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.sidebar::-webkit-scrollbar {
+    display: none;
 }
 .sidebar .logo {
     font-size: 2rem;
@@ -52,6 +57,84 @@
 .sidebar nav .nav-link .badge {
     font-size: 0.7rem;
     padding: 0.2rem 0.5rem;
+}
+
+.sidebar-status {
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-status-form {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    padding: 1.25rem 1rem;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(6px);
+}
+
+.status-switch {
+    position: relative;
+    display: inline-block;
+    width: 58px;
+    height: 30px;
+}
+
+.status-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.status-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.25s ease;
+    border-radius: 34px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.status-slider::before {
+    position: absolute;
+    content: "";
+    height: 24px;
+    width: 24px;
+    left: 3px;
+    top: 3px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.status-switch input:checked + .status-slider {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.status-switch input:checked + .status-slider::before {
+    transform: translateX(28px);
+}
+
+.status-toggle-title {
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+.status-toggle-state {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.status-toggle-hint {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.status-spinner[hidden] {
+    display: none !important;
 }
 
 /* Hide sidebar on mobile by default, but keep hamburger visible */
@@ -118,4 +201,408 @@
         </a>
         <a href="{% url 'trainer_logout' %}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </nav>
+
+    <div class="sidebar-status px-3 py-4 mt-auto" data-status-endpoint="{% url 'trainer_status_api' %}">
+        {% if trainer.admin_locked %}
+            <div class="alert alert-warning text-center py-2 mb-0">
+                Status locked by admin
+            </div>
+        {% else %}
+            <form method="post" action="{% url 'trainer_dashboard' %}" id="statusForm" class="sidebar-status-form text-center">
+                {% csrf_token %}
+                <input type="hidden" name="toggle_status" value="toggle">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="status-toggle-title text-uppercase">Availability</span>
+                    <span id="sidebarStatusState" class="status-toggle-state {% if trainer.status == 'Active' %}text-success{% else %}text-warning{% endif %}">
+                        {% if trainer.status == 'Active' %}Online{% else %}Offline{% endif %}
+                    </span>
+                </div>
+
+                <label class="status-switch mb-3">
+                    <input type="checkbox" {% if trainer.status == 'Active' %}checked{% endif %} onchange="toggleStatus(this.closest('form'), this);">
+                    <span class="status-slider"></span>
+                </label>
+
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                    <span class="status-toggle-hint">Toggle to change status</span>
+                    <div id="statusSpinner" class="status-spinner" hidden>
+                        <i class="fas fa-spinner fa-spin text-light"></i>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+    (function () {
+        const STATUS_CHANNEL_NAME = 'trainer-status-channel';
+        const STORAGE_KEY = 'trainer_status_sync';
+        const POLL_INTERVAL_MS = 15000;
+
+        let broadcastChannel = null;
+        let pollTimer = null;
+        let lastStatus = null;
+        let lastAdminLocked = null;
+        let initialized = false;
+
+        const refs = {
+            sidebarStatus: null,
+            form: null,
+            checkbox: null,
+            spinner: null,
+            statusState: null,
+            statusBadge: null,
+            headerLabel: null,
+            statusIcon: null,
+            auxBadges: [],
+            auxLabels: [],
+        };
+
+        function cacheRefs() {
+            if (!refs.sidebarStatus) {
+                refs.sidebarStatus = document.querySelector('.sidebar-status');
+            }
+            if (!refs.form) {
+                refs.form = document.getElementById('statusForm');
+            }
+            if (!refs.checkbox && refs.form) {
+                refs.checkbox = refs.form.querySelector('input[type="checkbox"]');
+            }
+            if (!refs.spinner) {
+                refs.spinner = document.getElementById('statusSpinner');
+            }
+            refs.statusState = document.getElementById('sidebarStatusState');
+            refs.statusBadge = document.getElementById('trainerStatusBadge');
+            refs.headerLabel = document.getElementById('statusLabelText');
+            refs.statusIcon = document.getElementById('trainerStatusIcon');
+            refs.auxBadges = Array.from(document.querySelectorAll('[data-trainer-status-badge]'));
+            refs.auxLabels = Array.from(document.querySelectorAll('[data-trainer-status-label]'));
+        }
+
+        function getStatusEndpoint() {
+            cacheRefs();
+            return refs.sidebarStatus ? refs.sidebarStatus.dataset.statusEndpoint : null;
+        }
+
+        function toggleElementClasses(element, classWhenActive, classWhenInactive, isActive) {
+            if (!element) {
+                return;
+            }
+            element.classList.toggle(classWhenActive, isActive);
+            element.classList.toggle(classWhenInactive, !isActive);
+        }
+
+        function applyStatus(status, adminLocked, options = {}) {
+            if (!status) {
+                return;
+            }
+
+            const isActive = status === 'Active';
+            const unchanged = status === lastStatus && adminLocked === lastAdminLocked;
+
+            if (unchanged && !options.force) {
+                return;
+            }
+
+            lastStatus = status;
+            lastAdminLocked = !!adminLocked;
+
+            cacheRefs();
+
+            if (refs.checkbox) {
+                refs.checkbox.checked = isActive;
+                refs.checkbox.disabled = !!adminLocked;
+            }
+
+            const stateText = adminLocked ? 'Offline (Admin)' : (isActive ? 'Online' : 'Offline');
+            const stateKey = adminLocked ? 'locked' : (isActive ? 'active' : 'inactive');
+
+            if (refs.statusState) {
+                refs.statusState.textContent = stateText;
+                refs.statusState.classList.remove('text-success', 'text-warning', 'text-danger');
+                if (adminLocked) {
+                    refs.statusState.classList.add('text-danger');
+                } else if (isActive) {
+                    refs.statusState.classList.add('text-success');
+                } else {
+                    refs.statusState.classList.add('text-warning');
+                }
+            }
+
+            if (refs.statusBadge) {
+                refs.statusBadge.classList.remove('is-active', 'is-offline', 'is-locked');
+                if (adminLocked) {
+                    refs.statusBadge.classList.add('is-locked');
+                } else {
+                    refs.statusBadge.classList.add(isActive ? 'is-active' : 'is-offline');
+                }
+                const badgeLabel = refs.statusBadge.querySelector('[data-trainer-status-label]');
+                if (badgeLabel) {
+                    badgeLabel.textContent = stateText;
+                }
+            }
+
+            if (refs.statusIcon) {
+                refs.statusIcon.className = 'fas ' + (adminLocked ? 'fa-lock' : (isActive ? 'fa-circle-check' : 'fa-circle-minus'));
+            }
+
+            if (refs.headerLabel) {
+                refs.headerLabel.textContent = stateText;
+            }
+
+            if (refs.auxBadges.length) {
+                refs.auxBadges.forEach(badge => {
+                    const activeClass = badge.dataset.activeClass || '';
+                    const inactiveClass = badge.dataset.inactiveClass || '';
+                    const lockedClass = badge.dataset.lockedClass || '';
+                    [activeClass, inactiveClass, lockedClass].forEach(cls => {
+                        if (cls) {
+                            badge.classList.remove(cls);
+                        }
+                    });
+
+                    if (stateKey === 'locked' && lockedClass) {
+                        badge.classList.add(lockedClass);
+                    } else if (stateKey === 'active' && activeClass) {
+                        badge.classList.add(activeClass);
+                    } else if (inactiveClass) {
+                        badge.classList.add(inactiveClass);
+                    }
+
+                    const inlineLabel = badge.querySelector('[data-trainer-status-label]');
+                    if (inlineLabel) {
+                        inlineLabel.textContent = stateText;
+                    }
+                });
+            }
+
+            if (refs.auxLabels.length) {
+                refs.auxLabels.forEach(label => {
+                    label.textContent = stateText;
+                });
+            }
+
+            if (refs.form) {
+                refs.form.classList.toggle('status-admin-locked', !!adminLocked);
+            }
+
+            if (!options.silent) {
+                broadcastStatus(status, !!adminLocked);
+            }
+        }
+
+        function broadcastStatus(status, adminLocked) {
+            const payload = {
+                status,
+                admin_locked: !!adminLocked,
+                ts: Date.now(),
+            };
+
+            if (broadcastChannel) {
+                try {
+                    broadcastChannel.postMessage(payload);
+                    return;
+                } catch (_) {
+                    // fall back to storage event
+                }
+            }
+
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                // Removing the item allows repeated events in some browsers
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (_) {
+                // Ignore storage quota errors
+            }
+        }
+
+        function handleBroadcastMessage(event) {
+            const data = event && event.data ? event.data : event;
+            if (!data || !data.status) {
+                return;
+            }
+            applyStatus(data.status, data.admin_locked, { silent: true });
+        }
+
+        function fetchLatestStatus(force = false) {
+            const endpoint = getStatusEndpoint();
+            if (!endpoint) {
+                return;
+            }
+
+            fetch(endpoint, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            })
+                .then(response => response.ok ? response.json() : null)
+                .then(data => {
+                    if (!data || !data.status) {
+                        return;
+                    }
+                    applyStatus(data.status, data.admin_locked, { silent: true, force });
+                })
+                .catch(error => {
+                    console.error('Trainer status poll failed:', error);
+                });
+        }
+
+        function schedulePolling() {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+            }
+            pollTimer = setInterval(fetchLatestStatus, POLL_INTERVAL_MS);
+        }
+
+        function ensureBroadcastTransport() {
+            if ('BroadcastChannel' in window) {
+                broadcastChannel = new BroadcastChannel(STATUS_CHANNEL_NAME);
+                broadcastChannel.addEventListener('message', handleBroadcastMessage);
+            } else {
+                window.addEventListener('storage', function (event) {
+                    if (event.key === STORAGE_KEY && event.newValue) {
+                        try {
+                            const data = JSON.parse(event.newValue);
+                            handleBroadcastMessage(data);
+                        } catch (_) {
+                            // Ignore JSON parsing errors
+                        }
+                    }
+                });
+            }
+        }
+
+        function showStatusAlert(isSuccess, message) {
+            const container = document.getElementById('statusAlertContainer');
+            if (!container) {
+                console[isSuccess ? 'info' : 'warn'](message);
+                return;
+            }
+
+            container.innerHTML = '';
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${isSuccess ? 'success' : 'danger'} alert-dismissible fade show`;
+            alertDiv.setAttribute('role', 'alert');
+            alertDiv.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+
+            container.appendChild(alertDiv);
+
+            setTimeout(() => {
+                if (!alertDiv || !alertDiv.parentElement) {
+                    return;
+                }
+                if (window.bootstrap && window.bootstrap.Alert) {
+                    const alertInstance = window.bootstrap.Alert.getOrCreateInstance(alertDiv);
+                    alertInstance.close();
+                } else {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+
+        function handleToggle(source, control) {
+            cacheRefs();
+            const form = source instanceof HTMLFormElement ? source : refs.form;
+            if (!form) {
+                return;
+            }
+
+            const checkbox = control && control.tagName === 'INPUT' ? control : refs.checkbox;
+            const spinner = refs.spinner;
+            const originalChecked = checkbox ? checkbox.checked : null;
+
+            if (checkbox) {
+                checkbox.disabled = true;
+            }
+            if (spinner) {
+                spinner.hidden = false;
+            }
+
+            const csrfInput = form.querySelector('input[name="csrfmiddlewaretoken"]');
+            const formData = new FormData(form);
+            const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+
+            if (csrfInput) {
+                headers['X-CSRFToken'] = csrfInput.value;
+            }
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers,
+                credentials: 'same-origin',
+            })
+                .then(async response => {
+                    const data = await response.json().catch(() => null);
+                    return { ok: response.ok, data };
+                })
+                .then(result => {
+                    const { ok, data } = result;
+
+                    if (!data || typeof data.success === 'undefined') {
+                        throw new Error('Unexpected response payload');
+                    }
+
+                    if (!ok || !data.success) {
+                        if (checkbox && originalChecked !== null) {
+                            checkbox.checked = originalChecked;
+                        }
+                        showStatusAlert(false, data.message || 'Unable to update status.');
+                        return;
+                    }
+
+                    applyStatus(data.new_status, data.admin_locked, { silent: false, force: true });
+                    showStatusAlert(true, data.message || 'Status updated successfully.');
+                })
+                .catch(error => {
+                    console.error('Status toggle failed:', error);
+                    if (checkbox && originalChecked !== null) {
+                        checkbox.checked = originalChecked;
+                    }
+                    showStatusAlert(false, 'Something went wrong. Please try again.');
+                })
+                .finally(() => {
+                    if (checkbox) {
+                        checkbox.disabled = !!lastAdminLocked;
+                    }
+                    if (spinner) {
+                        spinner.hidden = true;
+                    }
+                });
+        }
+
+        function initialize() {
+            if (initialized) {
+                return;
+            }
+            initialized = true;
+
+            cacheRefs();
+            ensureBroadcastTransport();
+            fetchLatestStatus(true);
+            schedulePolling();
+
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) {
+                    fetchLatestStatus(true);
+                }
+            });
+
+            if (refs.form) {
+                refs.form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    handleToggle(refs.form, refs.checkbox);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initialize);
+
+        window.toggleStatus = handleToggle;
+        window.showStatusAlert = showStatusAlert;
+        window.applyTrainerStatusUI = function (status, adminLocked, options) {
+            applyStatus(status, adminLocked, options || { silent: true });
+        };
+    })();
+</script>

@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="{% static 'myapp/css/trainer_dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'myapp/css/trainer_header.css' %}">
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #934CD2 0%, #3B82F6 100%);
@@ -27,6 +28,12 @@
             border-radius: 0 0 25px 25px;
             box-shadow: 0 8px 25px rgba(147, 76, 210, 0.3);
             margin-bottom: 30px;
+        }
+
+        .session-card-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
         }
 
         .session-card {
@@ -376,10 +383,30 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="container-fluid">
-            <!-- Header Section -->
-            <div class="sessions-header">
-                <h2><i class="fas fa-play-circle me-3"></i>My Session Recordings</h2>
-                <p>Manage and view all your uploaded session recordings</p>
+            <div class="trainer-header trainer-header--compact">
+                <div class="trainer-header__content w-100">
+                    <div class="d-flex flex-column gap-2">
+                        <h1 class="trainer-header__title mb-0">
+                            <i class="fas fa-play-circle me-2"></i>My Session Recordings
+                        </h1>
+                        <p class="trainer-header__subtitle mb-0">Manage and view all your uploaded session recordings.</p>
+                    </div>
+                    <div class="trainer-header__actions ms-auto">
+                        <div class="trainer-header__stats">
+                            <div class="trainer-header__stat">
+                                <div class="trainer-header__stat-label">Total Sessions</div>
+                                <div class="trainer-header__stat-value">{{ sessions|length }}</div>
+                            </div>
+                            <div class="trainer-header__stat">
+                                <div class="trainer-header__stat-label">Active Batches</div>
+                                <div class="trainer-header__stat-value">{{ batch_stats|length }}</div>
+                            </div>
+                        </div>
+                        <a href="{% url 'upload_session' %}" class="btn btn-light text-primary fw-semibold">
+                            <i class="fas fa-plus me-2"></i>Upload Session
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <div class="container">
@@ -449,7 +476,8 @@
                 <div class="row">
                     {% for session in sessions %}
                     <div class="col-12 col-md-6 col-lg-6 mb-4">
-                        <div class="session-card" style="cursor: pointer;" onclick="window.location.href='{% url 'session_detail' session.id %}'">
+                        <a href="{% url 'session_detail' session.id %}" class="session-card-link">
+                        <div class="session-card" style="cursor: pointer;">
                             <div class="d-flex justify-content-between align-items-start mb-3 flex-column flex-md-row">
                                 <h5 class="session-title">
                                     <i class="fas fa-video me-2 text-primary"></i>
@@ -546,6 +574,7 @@
                                 </div>
                             </div>
                         </div>
+                        </a>
                     </div>
                     {% endfor %}
                 </div>

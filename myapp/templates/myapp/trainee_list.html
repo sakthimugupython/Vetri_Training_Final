@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'myapp/css/trainee_list.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/admin_header.css' %}">
     <style>
         /* Global overflow prevention */
         html, body {
@@ -445,7 +446,7 @@
         }
     </style>
 </head>
-<body>
+<body class="admin-surface">
     <!-- Sidebar Toggle Button (Mobile) -->
     <button class="sidebar-toggle" onclick="toggleSidebar()">
         <i class="fas fa-bars"></i>
@@ -460,28 +461,27 @@
     {% include 'myapp/_sidebar.html' %}
 
     <div class="main-content">
-        <div class="trainee-header" style="background:#3865ff;color:#fff;padding:14px 32px 18px 32px;">
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <div>
-                    <h3 class="mb-1" style="font-weight:700;">Manage Trainees</h3>
-                    <div style="font-size:1.1rem;">View, track, and manage all registered trainees.</div>
+        <header class="admin-header">
+            <div class="admin-header__content">
+                <div class="admin-header__titles">
+                    <h1 class="admin-header__title">Manage Trainees</h1>
+                    <p class="admin-header__subtitle">View, track, and manage all registered trainees.</p>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <!-- Search Form -->
-                    <form method="GET" action="{% url 'trainee_list' %}" class="d-flex align-items-center">
+                <div class="admin-header__actions">
+                    <form method="GET" action="{% url 'trainee_list' %}" class="admin-header__search">
                         <div class="input-group" style="width: 250px;">
-                            <input type="text" class="form-control" name="search" placeholder="Search trainees..." value="{{ search_query|default:'' }}" style="border-radius: 20px 0 0 20px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white;">
-                            <button class="btn btn-light" type="submit" style="border-radius: 0 20px 20px 0; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                            <input type="text" class="form-control" name="search" placeholder="Search trainees..." value="{{ search_query|default:'' }}">
+                            <button class="btn btn-light" type="submit">
                                 <i class="fas fa-search"></i>
                             </button>
                         </div>
                     </form>
-                    <div class="user-info ms-2">
-                        <div class="user-role">VTS Admin</div>
+                    <div class="admin-header__quick-actions">
+                        <span class="admin-pill"><i class="fas fa-user-shield"></i> VTS Admin</span>
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
         <div class="row g-3 my-4">
             <div class="col-md-3">
                 <div class="trainee-stat-card">

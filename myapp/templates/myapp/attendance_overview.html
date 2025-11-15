@@ -8,6 +8,7 @@
     <title>Attendance Overview - Vetri Training</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'myapp/css/trainee_header.css' %}">
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -109,133 +110,210 @@
             }
         }
 
-        .calendar-header {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 2rem;
-            text-align: center;
+        .calendar-wrapper {
+            background: white;
+            border-radius: 22px;
+            box-shadow: 0 25px 55px rgba(79, 70, 229, 0.15);
+            overflow: hidden;
+            border: 1px solid rgba(99, 102, 241, 0.12);
         }
 
-        .calendar-navigation {
+        .calendar-header {
+            background: linear-gradient(120deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95));
+            color: white;
+            padding: 1.75rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
-        .month-year {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin: 0;
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        .nav-btn {
+        .calendar-nav-btn {
             background: rgba(255, 255, 255, 0.2);
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.35);
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 1.2rem;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
         }
 
-        .nav-btn:hover {
+        .calendar-nav-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
         }
 
+        .month-year {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            margin: 0;
+        }
+
         .calendar-grid {
-            padding: 2rem;
+            padding: 1.75rem 2rem 2rem;
+            background: linear-gradient(180deg, rgba(248, 250, 255, 0.9) 0%, rgba(237, 242, 255, 0.65) 100%);
+        }
+
+        .calendar-days-header,
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.75rem;
         }
 
         .calendar-days-header {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 0.5rem;
             margin-bottom: 1rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.06em;
+            color: #4c51bf;
             text-align: center;
-            font-weight: 600;
-            color: #4a5568;
-        }
-
-        .day-name {
-            padding: 0.5rem;
-        }
-
-        .calendar-days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 0.5rem;
         }
 
         .calendar-day {
-            aspect-ratio: 1;
+            min-height: 110px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 18px;
+            padding: 0.85rem;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.12);
             position: relative;
-            min-height: 80px;
         }
 
         .calendar-day:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 45px rgba(79, 70, 229, 0.2);
         }
 
-        .calendar-day.empty {
-            cursor: default;
-        }
-
-        .calendar-day.empty:hover {
-            transform: none;
+        .calendar-day.muted {
+            background: rgba(237, 242, 255, 0.55);
+            color: #a0aec0;
             box-shadow: none;
         }
 
-        .day-number {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
+        .calendar-day.today {
+            border: 2px solid rgba(102, 126, 234, 0.4);
         }
 
-        .attendance-indicators {
+        .day-number {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: #1a202c;
+        }
+
+        .calendar-day.today .day-number {
+            color: #4c51bf;
+        }
+
+        .calendar-status-pill {
+            margin-top: auto;
+            align-self: flex-start;
+            padding: 0.45rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .calendar-day .remarks-snippet {
+            margin-top: 0.4rem;
+            font-size: 0.7rem;
+            color: #4a5568;
+            display: -webkit-box;
+            line-clamp: 2;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .calendar-day.status-present {
+            background: rgba(72, 187, 120, 0.14);
+            border: 1px solid rgba(72, 187, 120, 0.25);
+        }
+
+        .calendar-day.status-present .calendar-status-pill {
+            background: rgba(72, 187, 120, 0.2);
+            color: #276749;
+        }
+
+        .calendar-day.status-absent {
+            background: rgba(245, 101, 101, 0.14);
+            border: 1px solid rgba(229, 62, 62, 0.25);
+        }
+
+        .calendar-day.status-absent .calendar-status-pill {
+            background: rgba(229, 62, 62, 0.2);
+            color: #9b2c2c;
+        }
+
+        .calendar-day.status-informed {
+            background: rgba(49, 130, 206, 0.14);
+            border: 1px solid rgba(49, 130, 206, 0.32);
+        }
+
+        .calendar-day.status-informed .calendar-status-pill {
+            background: rgba(49, 130, 206, 0.2);
+            color: #2b6cb0;
+        }
+
+        .calendar-day.status-not_informed {
+            background: rgba(237, 137, 54, 0.14);
+            border: 1px solid rgba(237, 137, 54, 0.28);
+        }
+
+        .calendar-day.status-not_informed .calendar-status-pill {
+            background: rgba(237, 137, 54, 0.22);
+            color: #c05621;
+        }
+
+        .calendar-day.not-marked {
+            background: rgba(203, 213, 224, 0.18);
+            border: 1px dashed rgba(160, 174, 192, 0.45);
+        }
+
+        .calendar-legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 2px;
-            justify-content: center;
-            margin-top: 0.25rem;
+            gap: 0.75rem 1.5rem;
+            padding: 1.25rem 2rem 2rem;
+            background: rgba(248, 250, 255, 0.9);
+            border-top: 1px solid rgba(99, 102, 241, 0.12);
         }
 
-        .attendance-indicator {
-            width: 8px;
-            height: 8px;
+        .calendar-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
-        }
-
-        .attendance-indicator.present {
-            background: var(--success-color);
-        }
-
-        .attendance-indicator.absent {
-            background: var(--danger-color);
-        }
-
-        .attendance-indicator.informed {
-            background: var(--info-color);
-        }
-
-        .attendance-indicator.not_informed {
-            background: var(--warning-color);
-        }
-
-        .calendar-day.upcoming {
-            background: #e3f2fd;
-            color: #1976d2;
         }
 
         /* Table Styles */
@@ -471,6 +549,32 @@
                 font-size: 0.8rem;
             }
 
+        @media (max-width: 768px) {
+            .calendar-grid {
+                padding: 1.25rem 1rem 1.5rem;
+                gap: 0.6rem;
+            }
+
+            .calendar-day {
+                min-height: 90px;
+                padding: 0.75rem;
+                border-radius: 15px;
+            }
+
+            .month-year {
+                font-size: 1.5rem;
+            }
+
+            .calendar-nav-btn {
+                width: 38px;
+                height: 38px;
+            }
+            .calendar-legend {
+                padding: 1rem 1.25rem 1.5rem;
+                gap: 0.5rem 1rem;
+            }
+        }
+
         @media (max-width: 480px) {
             .stats-container {
                 grid-template-columns: 1fr;
@@ -538,28 +642,50 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2 class="mb-1" style="color: #2d3748; font-weight: 800;">
-                    <i class="fas fa-calendar-alt text-primary"></i> My Attendance Overview
-                </h2>
-                <p class="text-muted mb-0">Welcome back, {{ trainee.user.get_full_name|default:trainee.user.username }}!</p>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-filter"></i> Filter
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="?month={{ month|add:'-1' }}&year={{ year }}">Previous Month</a></li>
-                        <li><a class="dropdown-item" href="?month={{ month|add:'1' }}&year={{ year }}">Next Month</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="?month={{ current_date.month }}&year={{ current_date.year }}">Current Month</a></li>
-                    </ul>
+        <header class="trainee-header">
+            <div class="trainee-header__content">
+                <div class="trainee-header__titles">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="trainee-header__icon-circle">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div>
+                            <h1 class="trainee-header__title mb-0">My Attendance Overview</h1>
+                            <p class="trainee-header__subtitle mb-0">Welcome back, {{ trainee.user.get_full_name|default:trainee.user.username }}!</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="trainee-header__actions">
+                    <div class="trainee-header__stats">
+                        <div class="trainee-header__stats-card">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <span class="trainee-header__stat-label">Present days</span>
+                                <span class="trainee-header__stat-value">{{ statistics.present_count }}</span>
+                            </div>
+                        </div>
+                        <div class="trainee-header__stats-card">
+                            <i class="fas fa-times-circle"></i>
+                            <div>
+                                <span class="trainee-header__stat-label">Absent days</span>
+                                <span class="trainee-header__stat-value">{{ statistics.absent_count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="?month={{ month|add:'-1' }}&year={{ year }}">Previous Month</a></li>
+                            <li><a class="dropdown-item" href="?month={{ month|add:'1' }}&year={{ year }}">Next Month</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="?month={{ current_date.month }}&year={{ current_date.year }}">Current Month</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
-        </div>
+        </header>
 
         <!-- Statistics Cards -->
         <div class="stats-container">
@@ -570,18 +696,18 @@
             </div>
             <div class="stat-card danger">
                 <div class="stat-value">{{ statistics.absent_percentage }}%</div>
-                <div class="stat-label">Absent</div>
+                <div class="stat-label">Total Absence</div>
                 <small class="text-muted">{{ statistics.absent_count }} days</small>
             </div>
             <div class="stat-card info">
+                <div class="stat-value">{{ statistics.absent_only_percentage }}%</div>
+                <div class="stat-label">Unnotified Absence</div>
+                <small class="text-muted">{{ statistics.absent_only_count }} days</small>
+            </div>
+            <div class="stat-card warning">
                 <div class="stat-value">{{ statistics.informed_percentage }}%</div>
                 <div class="stat-label">Informed Absence</div>
                 <small class="text-muted">{{ statistics.informed_count }} days</small>
-            </div>
-            <div class="stat-card warning">
-                <div class="stat-value">{{ statistics.not_informed_percentage }}%</div>
-                <div class="stat-label">Not Informed</div>
-                <small class="text-muted">{{ statistics.not_informed_count }} days</small>
             </div>
         </div>
 
@@ -611,6 +737,69 @@
                     <div class="legend-dot" style="background: #cbd5e0; border: 2px solid #a0aec0;"></div>
                     <span>Not Marked</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Calendar Wrapper -->
+        <div class="calendar-wrapper mb-4">
+            <div class="calendar-header">
+                <div class="month-year">{{ month_name }} {{ year }}</div>
+                <div class="calendar-nav">
+                    <a href="?month={{ prev_month }}&year={{ prev_year }}" class="calendar-nav-btn" title="Previous Month" aria-label="Previous Month">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    <a href="?month={{ current_date.month }}&year={{ current_date.year }}" class="btn btn-outline-light" style="border-radius: 12px; font-weight: 600;">
+                        Today
+                    </a>
+                    <a href="?month={{ next_month }}&year={{ next_year }}" class="calendar-nav-btn" title="Next Month" aria-label="Next Month">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="calendar-grid">
+                <div class="calendar-days-header">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div class="calendar-days">
+                    {% for week in calendar_weeks %}
+                        {% for day in week %}
+                            {% with status=day.status %}
+                            <div class="calendar-day{% if not day.in_current_month %} muted{% endif %}{% if day.in_current_month and status %} status-{{ status }}{% elif day.in_current_month and not status %} not-marked{% endif %}{% if day.is_today %} today{% endif %}">
+                                <span class="day-number">{{ day.date|date:'j' }}</span>
+                                {% if status %}
+                                    <span class="calendar-status-pill">
+                                        {% if status == 'present' %}
+                                            <i class="fas fa-check-circle"></i> Present
+                                        {% elif status == 'absent' %}
+                                            <i class="fas fa-times-circle"></i> Absent
+                                        {% elif status == 'informed' %}
+                                            <i class="fas fa-info-circle"></i> Informed
+                                        {% elif status == 'not_informed' %}
+                                            <i class="fas fa-exclamation-triangle"></i> Not Informed
+                                        {% endif %}
+                                    </span>
+                                    {% if day.remarks %}
+                                        <div class="remarks-snippet"><i class="fas fa-sticky-note"></i> {{ day.remarks }}</div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endwith %}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="calendar-legend">
+                <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(72, 187, 120, 0.85);"></span> Present</div>
+                <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(245, 101, 101, 0.85);"></span> Absent</div>
+                <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(49, 130, 206, 0.85);"></span> Informed</div>
+                <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(237, 137, 54, 0.85);"></span> Not Informed</div>
+                <div class="calendar-legend-item"><span class="legend-dot" style="background: rgba(203, 213, 224, 0.85);"></span> Not Marked</div>
             </div>
         </div>
 
