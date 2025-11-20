@@ -115,6 +115,13 @@ body {
 
 .trainee-table th {
     border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+}
+
+.trainee-table td:last-child,
+.trainee-table th:last-child {
+    min-width: 140px;
+    text-align: center;
 }
 
 .status-active {

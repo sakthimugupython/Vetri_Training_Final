@@ -2,6 +2,7 @@ from django.db import models
 
 
 from django.contrib.auth.models import User
+import uuid
 
 
 
@@ -139,3 +140,83 @@ class SessionRecording(models.Model):
 
     def __str__(self):
         return f"{self.title} - Batch {self.batch} ({self.upload_date.strftime('%Y-%m-%d')})"
+
+
+class EmailTemplate(models.Model):
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=100)
+    subject_template = models.TextField()
+    body_template = models.TextField(help_text="Use Django template syntax. Available context varies per notification type.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class NotificationPreference(models.Model):
+    trainee = models.OneToOneField('Trainee', on_delete=models.CASCADE, related_name='notification_preferences')
+    allow_announcements = models.BooleanField(default=True)
+    allow_attendance_updates = models.BooleanField(default=True)
+    allow_task_updates = models.BooleanField(default=True)
+    allow_session_material = models.BooleanField(default=True)
+    unsubscribed = models.BooleanField(default=False)
+    unsubscribe_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Notification preferences for {self.trainee}"
+
+    def regenerate_token(self) -> None:
+        self.unsubscribe_token = uuid.uuid4()
+        self.save(update_fields=['unsubscribe_token', 'updated_at'])
+
+
+class EmailNotification(models.Model):
+    class Status(models.TextChoices):
+        QUEUED = 'queued', 'Queued'
+        SENT = 'sent', 'Sent'
+        FAILED = 'failed', 'Failed'
+        BOUNCED = 'bounced', 'Bounced'
+
+    class NotificationType(models.TextChoices):
+        ANNOUNCEMENT = 'announcement', 'Announcement'
+        ATTENDANCE = 'attendance', 'Attendance Update'
+        TASK = 'task', 'Task Update'
+        SESSION = 'session', 'Session Material Upload'
+
+    trainee = models.ForeignKey('Trainee', on_delete=models.CASCADE, related_name='email_notifications')
+    notification_type = models.CharField(max_length=30, choices=NotificationType.choices)
+    recipient_email = models.EmailField()
+    subject = models.CharField(max_length=255)
+    body = models.TextField()
+    context = models.JSONField(default=dict, blank=True)
+    template = models.ForeignKey(EmailTemplate, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.QUEUED)
+    attempt_count = models.PositiveIntegerField(default=0)
+    max_attempts = models.PositiveIntegerField(default=3)
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True)
+    message_id = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_notification_type_display()} to {self.trainee} ({self.get_status_display()})"
+
+    @property
+    def can_retry(self) -> bool:
+        return self.attempt_count < self.max_attempts and self.status in {self.Status.QUEUED, self.Status.FAILED}
+
+    def mark_failed(self, error: str) -> None:
+        self.status = self.Status.FAILED
+        self.last_error = error[:2000]
+        self.save(update_fields=['status', 'last_error', 'updated_at'])
+
+    def mark_bounced(self, error: str = "") -> None:
+        self.status = self.Status.BOUNCED
+        self.last_error = error[:2000]
+        self.save(update_fields=['status', 'last_error', 'updated_at'])

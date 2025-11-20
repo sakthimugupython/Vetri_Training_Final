@@ -53,6 +53,7 @@ urlpatterns = [
 
     # Trainee Announcement URLs
     path('trainee-announcements/', views.trainee_announcements, name='trainee_announcements'),
+    path('notifications/preferences/<uuid:token>/', views.trainee_notification_preferences, name='trainee_notification_preferences'),
 
     # Certificate URLs
     path('certificates/', views.student_certificates, name='student_certificates'),

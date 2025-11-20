@@ -1,0 +1,37 @@
+Hello {{ trainee_name }},
+
+{{ intro|default:"You have a new update in your Vetri Training portal." }}
+
+{% if title %}Title: {{ title }}{% endif %}
+{% if trainer_name %}Trainer: {{ trainer_name }}{% endif %}
+{% if timestamp %}When: {{ timestamp }}{% endif %}
+
+{% if summary %}Summary: {{ summary }}{% endif %}
+
+{% if changes %}
+Updates:
+{% for change in changes %}
+- {{ change }}
+{% endfor %}
+{% endif %}
+
+{% if assigned_today is not None %}
+Tasks assigned today: {{ assigned_today }}
+{% endif %}
+{% if completed_since_last is not None %}
+Tasks marked completed: {{ completed_since_last }}
+{% endif %}
+{% if total_assigned is not None %}
+Total tasks assigned: {{ total_assigned }}
+{% endif %}
+{% if total_completed is not None %}
+Total tasks completed: {{ total_completed }}
+{% endif %}
+{% if remaining_task is not None %}
+Tasks remaining: {{ remaining_task }}
+{% endif %}
+{% if remarks %}
+Trainer remarks: {{ remarks }}
+{% endif %}
+
+You can view the full details by logging into your trainee dashboard.

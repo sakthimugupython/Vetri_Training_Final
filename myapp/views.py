@@ -24,7 +24,18 @@ except ImportError:
     # Fallback for environments where PIL is not available
     Image = ImageDraw = ImageFont = None
 
-from .models import Course, Trainer, Trainee, Certificate, Announcement, DailyAssessment, TraineeAttendance, SessionRecording
+from .models import (
+    Course,
+    Trainer,
+    Trainee,
+    Certificate,
+    Announcement,
+    DailyAssessment,
+    TraineeAttendance,
+    SessionRecording,
+    NotificationPreference,
+)
+from .services.email_notifications import EmailNotificationService
 
 # --- HELPER FUNCTIONS ---
 def is_admin(user):
@@ -195,9 +206,24 @@ def update_trainee_attendance(request, trainee_id):
 
 		status = request.POST.get('status')
 		remarks = request.POST.get('remarks', '')
+		previous_status = attendance.status
+		previous_remarks = attendance.remarks
 		attendance.status = status
 		attendance.remarks = remarks
 		attendance.save()
+
+		if status and (previous_status != attendance.status or (previous_remarks or '') != (attendance.remarks or '')):
+			service = EmailNotificationService()
+			service.queue_attendance_notification(
+				trainee=trainee,
+				trainer=trainer,
+				attendance_date=attendance.date,
+				status=attendance.status,
+				previous_status=None if created else previous_status,
+				remarks=attendance.remarks or None,
+				previous_remarks=None if created else (previous_remarks or None),
+				event_timestamp=timezone.now(),
+			)
 		messages.success(request, 'Attendance updated!')
 		return redirect('trainer_trainee_attendance')
 	return render(request, 'myapp/update_trainee_attendance.html', {'trainee': trainee, 'attendance': attendance})
@@ -264,10 +290,12 @@ def trainee_attendance_trainer(request):
 		remarks = request.POST.get('remarks', '').strip()
 
 		if status:
-			attendance, _ = TraineeAttendance.objects.get_or_create(
+			attendance, created = TraineeAttendance.objects.get_or_create(
 				trainee=selected_trainee,
 				date=selected_date,
 			)
+			previous_status = attendance.status
+			previous_remarks = attendance.remarks
 			if status in {'informed', 'not_informed'}:
 				attendance.status = status
 				attendance.remarks = remarks
@@ -278,6 +306,18 @@ def trainee_attendance_trainer(request):
 				attendance.status = status
 				attendance.remarks = ''
 			attendance.save()
+			if previous_status != attendance.status or (previous_remarks or '') != (attendance.remarks or ''):
+				service = EmailNotificationService()
+				service.queue_attendance_notification(
+					trainee=selected_trainee,
+					trainer=trainer,
+					attendance_date=attendance.date,
+					status=attendance.status,
+					previous_status=None if created else previous_status,
+					remarks=attendance.remarks or None,
+					previous_remarks=None if created else (previous_remarks or None),
+					event_timestamp=timezone.now(),
+				)
 			messages.success(request, f"Attendance updated for {selected_trainee.user.get_full_name() or selected_trainee.user.username} on {selected_date.strftime('%d %b %Y')}")
 
 		redirect_url = reverse('trainer_trainee_attendance') + f'?trainee_id={selected_trainee.id}&month={month}&year={year}'
@@ -507,6 +547,7 @@ def add_announcement(request):
             posted_by='Admin',
             academy='Vetri Academy'
         )
+        _notify_trainees_announcement(announcement)
         messages.success(request, 'Announcement added successfully!')
         return redirect('announcements')
     return render(request, 'myapp/add_announcement.html')
@@ -576,7 +617,7 @@ def create_announcement(request):
 		target_audience = request.POST.get('target_audience', 'all')
 
 		if title and content:
-			Announcement.objects.create(
+			announcement = Announcement.objects.create(
 				title=title,
 				content=content,
 				short_description=description,
@@ -585,12 +626,55 @@ def create_announcement(request):
 				posted_by=f"Trainer {trainer.user.get_full_name()}",
 				academy='Vetri Academy'
 			)
+			_notify_trainees_announcement(announcement)
 			messages.success(request, 'Announcement posted successfully!')
 			return redirect('trainer_announcements')
 		else:
 			messages.error(request, 'Please fill in all required fields.')
 
 	return render(request, 'myapp/create_announcement.html')
+
+
+
+def _notify_trainees_announcement(announcement: Announcement) -> None:
+    if announcement.target_audience not in ('all', 'trainees'):
+        return
+    service = EmailNotificationService()
+    trainees = Trainee.objects.select_related('user').exclude(user__email='').filter(status='Active')
+    service.queue_announcement_notification(announcement, recipients=trainees)
+
+
+def trainee_notification_preferences(request, token):
+    preference = get_object_or_404(NotificationPreference, unsubscribe_token=token)
+
+    status_changed = False
+    message = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'unsubscribe':
+            preference.unsubscribed = True
+            preference.save(update_fields=['unsubscribed', 'updated_at'])
+            status_changed = True
+            message = 'You will no longer receive trainee email notifications.'
+        elif action == 'resubscribe':
+            preference.unsubscribed = False
+            preference.save(update_fields=['unsubscribed', 'updated_at'])
+            status_changed = True
+            message = 'You have resubscribed to trainee email notifications.'
+
+    elif request.GET.get('unsubscribe') == '1' and not preference.unsubscribed:
+        preference.unsubscribed = True
+        preference.save(update_fields=['unsubscribed', 'updated_at'])
+        status_changed = True
+        message = 'You have been unsubscribed from trainee email notifications.'
+
+    context = {
+        'preference': preference,
+        'status_changed': status_changed,
+        'message': message,
+    }
+    return render(request, 'emails/notification_preferences.html', context)
 
 
 @login_required(login_url='/trainer-login/')
@@ -1877,6 +1961,7 @@ def update_assessment(request, trainee_id):
     # Get current values
     from .models import DailyAssessment
     current_completed = getattr(trainee, 'completed_task', 0)
+    previous_remarks = getattr(trainee, 'remarks', '') or ''
 
     assignments = DailyAssessment.objects.filter(trainee=trainee).order_by('date')
     total_assigned = assignments.aggregate(total=models.Sum('score'))['total'] or 0
@@ -1894,6 +1979,12 @@ def update_assessment(request, trainee_id):
         completed_since_last = max(int(request.POST.get('completed_task', 0)), 0)
         remarks = request.POST.get('remarks', '').strip()
 
+        previous_total_assigned = total_assigned
+        previous_today_assigned = today_assigned
+
+        change_descriptions = []
+        summary_fragments = []
+
         if assigned_today > 0:
             DailyAssessment.objects.create(
                 trainee=trainee,
@@ -1907,6 +1998,10 @@ def update_assessment(request, trainee_id):
 
             total_assigned += assigned_today
             today_assigned += assigned_today
+            summary_fragments.append(f"Assigned {assigned_today} new task(s) for today")
+            change_descriptions.append(
+                f"{assigned_today} new task(s) assigned for {today.strftime('%d %b %Y')}"
+            )
 
         updated_completed = current_completed + completed_since_last
         if updated_completed > total_assigned:
@@ -1914,12 +2009,51 @@ def update_assessment(request, trainee_id):
 
         remaining_task = max(total_assigned - updated_completed, 0)
 
+        if completed_since_last > 0:
+            summary_fragments.append(f"Marked {completed_since_last} task(s) completed")
+            change_descriptions.append(
+                f"{completed_since_last} task(s) marked completed (total completed {updated_completed})"
+            )
+
+        if remarks != previous_remarks:
+            summary_fragments.append("Updated trainer remarks")
+            if remarks:
+                change_descriptions.append(f"Trainer remarks updated: {remarks}")
+            else:
+                change_descriptions.append("Trainer cleared previous remarks")
+
         trainee.completed_task = updated_completed
         trainee.pending_completed = 0
         trainee.total_task = total_assigned
         trainee.daily_task = today_assigned
         trainee.remarks = remarks
         trainee.save()
+
+        if summary_fragments:
+            summary_text = '; '.join(summary_fragments)
+        else:
+            summary_text = 'Your trainer updated your daily task schedule.'
+
+        if summary_fragments:
+            notification_changes = change_descriptions
+        else:
+            notification_changes = []
+
+        if summary_fragments:
+            service = EmailNotificationService()
+            service.queue_task_update_notification(
+                trainee=trainee,
+                trainer=trainer,
+                summary=summary_text,
+                changes=notification_changes,
+                assigned_today=assigned_today or None,
+                completed_since_last=completed_since_last or None,
+                total_assigned=total_assigned,
+                total_completed=updated_completed,
+                remaining_task=remaining_task,
+                remarks=remarks or None,
+                event_timestamp=timezone.now(),
+            )
 
         messages.success(request, 'Task info updated!')
         return redirect('trainer_trainee_list')
@@ -2012,6 +2146,17 @@ def upload_session(request):
                     upload_status='success',
                     upload_date=timezone.now()  # Set current timestamp when uploaded
                 )
+                service = EmailNotificationService()
+                recipients = Trainee.objects.select_related('user').filter(
+                    trainer=trainer,
+                    batch=batch,
+                    status='Active'
+                ).exclude(user__email='')
+                if recipients:
+                    service.queue_session_material_notification(
+                        session=session,
+                        recipients=recipients,
+                    )
                 messages.success(request, f'Session "{title}" uploaded successfully!')
                 return redirect('session_list')
             except Exception as e:
